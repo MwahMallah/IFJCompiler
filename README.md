@@ -1,2 +1,2 @@
 # IFJCompiler
-Compiler of IFJ language
+Compiler for IFJ language, made as part of university project
