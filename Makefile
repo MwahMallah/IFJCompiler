@@ -6,3 +6,6 @@ symtable_test: test/symtable_test.c data_structures/symtable.c
 
 token_list_test: test/tokens_test.c data_structures/tokens.c
 	$(CC) -o $@ $^ $(TEST_SRC) -I. -lm
+
+scanner_test: test/scanner_test.c scanner/scanner.c
+	$(CC) -o $@ $^ $(TEST_SRC) -I. -lm

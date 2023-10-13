@@ -5,6 +5,6 @@
 
 
 int main(void) {
-    TokenList tokens = parseTokens();
+    TokenList* tokens = parseTokens();
 
 }

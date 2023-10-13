@@ -2,6 +2,8 @@
     "C_Cpp.errorSquiggles": "disabled",
     "files.associations": {
         "compare": "c",
-        "type_traits": "c"
+        "type_traits": "c",
+        "tokens.h": "c",
+        "stdio.h": "c"
     }
 }

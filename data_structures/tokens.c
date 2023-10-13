@@ -3,9 +3,9 @@
 #include "tokens.h"
 #include <stdlib.h>
 
-/********************symtable.h***********************/
+/********************tokens.c*************************/
 /*  Předmět: IFJ - FIT VUT v Brně                    */
-/*  implementace: Anastasiia Samoilova (xsamoi00)  */
+/*  implementace: Anastasiia Samoilova (xsamoi00)    */
 /* ***************************************************/
 
 
