@@ -25,6 +25,7 @@ void test_add_and_find_symbol() {
     TEST_ASSERT_EQUAL_STRING("value1", symtable_find(table, "key1"));
     TEST_ASSERT_EQUAL_STRING("value2", symtable_find(table, "key2"));
 
+
     symtable_delete_table(table);
 }
 

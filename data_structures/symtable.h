@@ -37,7 +37,7 @@ symtable* new_symtable(); //creates new symbol table
 void symtable_add(symtable* symbols, char* key, char* value);
 char* symtable_find(symtable* symbols, char* key); //searches for  value by a given key
 void symtable_delete_pair(symtable* symbols, char* key); //deletes entry with a given key
-void symtable_delete_table(symtable* symbols);
+void symtable_delete_table(symtable* symbols); //deletes table itself
 
 /**/
 

@@ -17,7 +17,7 @@ typedef struct
     char* lexeme; //string, that has literal name of token ("let", "4", "my_variable")
     int* literal; //
     int line; //used for debugging 
-} token;
+} Token;
 
 
 //dynamic array or linked list?
@@ -26,13 +26,13 @@ typedef struct
     int capacity; //?
     int size;
     token** tokens;
-}token_list;
+}TokenList;
 
 /*
     Library API
 */
-token_list* new_token_list();
-token* token_get(token_list* tokens, int position);
+TokenList* new_token_list();
+Token* token_get(token_list* tokens, int position);
 void token_add(token_list* tokens, enum TokenType type, char* lexeme, int* literal, int line);
 void token_delete_tokens(token_list* tokens);
 /**/
