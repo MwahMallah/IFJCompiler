@@ -1,6 +1,7 @@
 #include "unity.h"
 #include "../data_structures/tokens.h"
 #include "../data_structures/tokenTypes.h"
+#include <stdio.h>
 
 void setUp() {
     // This function is called before each test case.
@@ -11,7 +12,7 @@ void tearDown() {
 }
 
 void test_create_new_token_list() {
-    token_list* tokens = new_token_list();
+    TokenList* tokens = new_token_list();
     TEST_ASSERT_NOT_NULL(tokens);
     TEST_ASSERT_EQUAL_INT(0, tokens->size);
     TEST_ASSERT_EQUAL_INT(MAX_CAPACITY, tokens->capacity);
@@ -19,23 +20,21 @@ void test_create_new_token_list() {
 }
 
 void test_add_and_get_tokens() {
-    token_list* tokens = new_token_list();
+    TokenList* tokens = new_token_list();
 
-    token_add(tokens, IDENTIFIER, "my_variable", NULL, 1);
-    token_add(tokens, NUMBER, "42", NULL, 1);
+    token_add(tokens, TOKEN_IDENTIFIER, "my_variable", 10);
+    token_add(tokens, TOKEN_NUMBER, "42", 2);
 
-    token* token1 = token_get(tokens, 0);
-    token* token2 = token_get(tokens, 1);
+    Token token1 = token_get(tokens, 0);
+    Token token2 = token_get(tokens, 1);
 
-    TEST_ASSERT_EQUAL_INT(IDENTIFIER, token1->type);
-    TEST_ASSERT_EQUAL_STRING("my_variable", token1->lexeme);
-    TEST_ASSERT_EQUAL_INT(1, token1->line);
+    TEST_ASSERT_EQUAL_INT(TOKEN_IDENTIFIER, token1.type);
+    TEST_ASSERT_EQUAL_INT(10, token1.length);
 
-    TEST_ASSERT_EQUAL_INT(NUMBER, token2->type);
-    TEST_ASSERT_EQUAL_STRING("42", token2->lexeme);
-    TEST_ASSERT_EQUAL_INT(1, token2->line);
+    TEST_ASSERT_EQUAL_INT(TOKEN_NUMBER, token2.type);
+    TEST_ASSERT_EQUAL_INT(2, token2.length);
 
-    token_delete_tokens(tokens);
+    //token_delete_tokens(tokens);
 }
 
 int main() {

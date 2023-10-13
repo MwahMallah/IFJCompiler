@@ -9,32 +9,32 @@
 
 #include "tokenTypes.h"
 
-#define MAX_CAPACITY 10
+#define MAX_CAPACITY 8
 
 typedef struct 
 {
-    enum TokenType type; //type of token
-    char* lexeme; //string, that has literal name of token ("let", "4", "my_variable")
-    int* literal; //
+    TokenType type; //type of token
+    const char* start; //points to start of lexeme
+    int length; //length of lexeme
     int line; //used for debugging 
 } Token;
 
 
-//dynamic array or linked list?
+//Token list made from dynamic array
 typedef struct 
 {
-    int capacity; //?
+    int capacity; 
     int size;
-    token** tokens;
+    Token* tokens;
 }TokenList;
 
 /*
     Library API
 */
 TokenList* new_token_list();
-Token* token_get(token_list* tokens, int position);
-void token_add(token_list* tokens, enum TokenType type, char* lexeme, int* literal, int line);
-void token_delete_tokens(token_list* tokens);
+Token token_get(TokenList* tokens, int position);
+void token_add(TokenList* tokens, TokenType type, const char* start, int length);
+void token_delete_tokens(TokenList* tokens);
 /**/
 
 #endif
