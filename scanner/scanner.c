@@ -138,6 +138,63 @@ static Token makeFromType(TokenType type) {
     return makeToken(type, scanner.start, length);
 }
 
+
+static bool isNumber() {
+    char ch = scanner.curr[0];
+    return ch >= '0' && ch <= '9';
+}
+
+static bool isAlpha() {
+    char ch = scanner.curr[0];
+    return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z');
+}
+
+static Token number() {
+    while (isNumber()) advance();
+    return makeFromType(TOKEN_NUMBER);
+}
+
+
+
+
+//func
+//funA
+static Token checkKeyWord(int start, int end, char* word, TokenType type) {
+    for (int i = start; i <= end; i++) {
+        if (scanner.start[i] != word[i - start]) return makeFromType(TOKEN_IDENTIFIER);
+    }
+
+    return makeFromType(type);
+}
+
+static Token makeIdentifier() {
+    char ch = scanner.start[0];
+    switch (ch)
+    {
+        case 'D': return checkKeyWord(1, 5, "ouble", TOKEN_TYPE_DOUBLE);
+        case 'I': return checkKeyWord(1, 2, "nt", TOKEN_TYPE_INT);
+        case 'S': return checkKeyWord(1, 5, "tring", TOKEN_TYPE_STRING);
+        case 'n': return checkKeyWord(1, 2, "il", TOKEN_NIL);
+        case 'r': return checkKeyWord(1, 5, "eturn", TOKEN_RETURN);
+        case 'l': return checkKeyWord(1, 2, "et", TOKEN_LET);
+        case 'v': return checkKeyWord(1, 2, "ar", TOKEN_VAR);
+        case 'f': return checkKeyWord(1, 2, "unc", TOKEN_FUNC);
+        case 'i': return checkKeyWord(1, 1, "f", TOKEN_IF);
+        case 'e': return checkKeyWord(1, 3, "lse", TOKEN_ELSE);
+        case 'w': 
+            if (scanner.start[1] == 'i') return checkKeyWord(2, 2, "th", TOKEN_WITH);
+            else if (scanner.start[1] == 'h') return checkKeyWord(2, 3, "ile", TOKEN_WHILE);
+
+    }
+
+    return makeFromType(TOKEN_IDENTIFIER);
+}
+
+static Token identifier() {
+    while (isAlpha() || isNumber()) advance();
+    return makeIdentifier();
+}
+
 //returns value of current scanner char
 //
 static Token scanToken() {
@@ -146,8 +203,10 @@ static Token scanToken() {
 
     if (isAtEnd()) return makeFromType(TOKEN_EOF);
 
-    char ch = advance();
+    if (isNumber()) return number();
+    if (isAlpha()) return identifier();
 
+    char ch = advance();
     switch (ch)
     {
         case '*': return makeFromType(TOKEN_STAR);

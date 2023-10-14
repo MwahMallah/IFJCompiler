@@ -79,9 +79,6 @@ char* getType(TokenType type) {
         case TOKEN_NUMBER:
                     string = "TOKEN_NUMBER";
                     break;
-        case TOKEN_AND:
-                    string = "TOKEN_AND";
-                    break;
         case TOKEN_ELSE:
                     string = "TOKEN_ELSE";
                     break;
@@ -91,20 +88,20 @@ char* getType(TokenType type) {
         case TOKEN_FUNC:
                     string = "TOKEN_FUNC";
                     break;
-        case TOKEN_FOR:
-                    string = "TOKEN_FOR";
-                    break;
         case TOKEN_IF:
                     string = "TOKEN_IF";
                     break;
         case TOKEN_NIL:
                     string = "TOKEN_NIL";
                     break;
-        case TOKEN_OR:
-                    string = "TOKEN_OR";
+        case TOKEN_TYPE_INT:
+                    string = "TOKEN_TYPE_INT";
                     break;
-        case TOKEN_PRINT:
-                    string = "TOKEN_PRINT";
+        case TOKEN_TYPE_DOUBLE:
+                    string = "TOKEN_TYPE_DOUBLE";
+                    break;
+        case TOKEN_TYPE_STRING:
+                    string = "TOKEN_TYPE_STRING";
                     break;
         case TOKEN_RETURN:
                     string = "TOKEN_RETURN";
