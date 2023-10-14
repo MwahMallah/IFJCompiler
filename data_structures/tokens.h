@@ -16,7 +16,6 @@ typedef struct
     TokenType type; //type of token
     const char* start; //points to start of lexeme
     int length; //length of lexeme
-    int line; //used for debugging 
 } Token;
 
 
@@ -33,8 +32,9 @@ typedef struct
 */
 TokenList* new_token_list();
 Token token_get(TokenList* tokens, int position);
-void token_add(TokenList* tokens, TokenType type, const char* start, int length);
+void token_add(TokenList* tokens, Token token);
 void token_delete_tokens(TokenList* tokens);
+Token makeToken(TokenType type, const char* start, int length);
 /**/
 
 #endif

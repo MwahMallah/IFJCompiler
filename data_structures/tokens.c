@@ -58,7 +58,7 @@ static void resize(TokenList* tokens) {
 /*
     Adds token with a given values to end of the token list.
 */
-void token_add(TokenList* tokens, TokenType type, const char* start, int length) {  
+void token_add(TokenList* tokens, Token new_token) {  
     //TODO
     if (tokens == NULL) {
         return;
@@ -67,12 +67,6 @@ void token_add(TokenList* tokens, TokenType type, const char* start, int length)
     if (tokens->size == tokens->capacity) {
         resize(tokens);
     }
-
-    Token new_token;
-
-    new_token.type = type;
-    new_token.start = start;
-    new_token.length = length;
 
     tokens->tokens[tokens->size] = new_token;
     (tokens->size)++;
@@ -94,4 +88,14 @@ void token_delete_tokens(TokenList* tokens) {
     free(tokens);
 
     return;
+}
+
+// Returns new token
+Token makeToken(TokenType type, const char* start, int length) {
+    Token tok; 
+    tok.type = type;
+    tok.start = start;
+    tok.length = length;
+
+    return tok;
 }

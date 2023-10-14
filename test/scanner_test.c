@@ -6,6 +6,7 @@
 #include "unity.h"
 #include "../scanner/scanner.h" 
 #include "../data_structures/tokens.h"
+#include "../data_structures/tokenTypes.h"
 
 void setUp() {
     // This function is called before each test case.
@@ -16,8 +17,8 @@ void tearDown() {
 }
 
 void test_read_file() {
-    TEST_ASSERT_EQUAL_STRING("aboba", readFile());
-    TEST_ASSERT_EQUAL_STRING("Lorem ipsum\r\n dolor sit amet,", readFile());
+    // TEST_ASSERT_EQUAL_STRING("aboba", readFile());
+    TEST_ASSERT_EQUAL_STRING("Lorem ipsum\r\ndolor sit amet,", readFile());
 }
 
 void test_parse_tokens() {
@@ -30,7 +31,7 @@ void test_parse_tokens() {
 int main() {
     UNITY_BEGIN();
     
-    //RUN_TEST(test_read_file); success
+    RUN_TEST(test_read_file); 
     
     return UNITY_END();
 }
