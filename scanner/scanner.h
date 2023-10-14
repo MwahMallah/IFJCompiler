@@ -9,6 +9,7 @@
 
 #include "../data_structures/tokens.h"
 
-TokenList* parseTokens(); //parses through standard input and outputs TokenList
+TokenList* scanTokens(char* program); //parses through standard input and outputs TokenList
+char* readInput();
 
 #endif

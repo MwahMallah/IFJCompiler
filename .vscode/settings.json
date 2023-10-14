@@ -4,6 +4,7 @@
         "compare": "c",
         "type_traits": "c",
         "tokens.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "tokentypes.h": "c"
     }
 }

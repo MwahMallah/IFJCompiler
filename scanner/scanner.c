@@ -21,7 +21,7 @@ Scanner scanner;
     Reads through all of standard input and outputs long string of input. 
     If gets allocation error, exits with 99 code.
 */
-char* readFile() {
+char* readInput() {
     char* program = malloc(sizeof(char) * INITIAL_PROGRAM_SIZE); //allocates initial memory for program text
     if (program == NULL) exit(99);
 
@@ -86,27 +86,49 @@ static char peekPrevios() {
     return scanner.curr[-1];
 }
 
-
-//Peeks at next char from current. Doesn't move current pointer.
-static char peekNext() {
-    return scanner.curr[1];
-}
-
 //If current points to EOF returns true.
 static bool isAtEnd() {
     return peek() == '\0';
 }
 
+//Peeks at next char from current. Doesn't move current pointer.
+static char peekNext() {
+    if (isAtEnd()) return '\0';
+    return scanner.curr[1];
+}
+
+
 //Skips all white spaces, tabulations and commentaries.
 static void skipWhiteSpaces() {
-    while (match(' ') || match('\t') || match('/')) {
-        if (peekPrevios() == '/') {
-            if (match('/')) {
-                while (!match('\n'));   
-            } else if (match('*')) {
-                while (!match('*'));
-                if (!match('/')) exit(1);
-            }
+    // while (match(' ') || match('\t') || match('/')) {
+    //     if (peekPrevios() == '/') {
+    //         if (match('/')) {
+    //             while (!match('\n')) advance();   
+    //         } else if (match('*')) {
+    //             while (!match('*')) advance();
+    //             if (!match('/')) exit(1);
+    //         }
+    //     }
+    // }
+
+    for(;;) { // infinite loop
+        char ch = peek();
+        switch (ch)
+        {
+            case ' ':
+            case '\t':        
+            case '\r':
+                advance();
+                break;            
+            case '/':
+                if (peekNext() == '/') {
+                    while(peek() != '\n' && !isAtEnd()) {advance();}
+                    advance(); //skip newline after comment end
+                } else if (peekNext() == '*') {
+                    while (peek() != '*' && peekNext() != '/' && !isAtEnd()) {advance();}                    
+                }
+            default:
+                return;
         }
     }
 }
@@ -120,35 +142,50 @@ static Token makeFromType(TokenType type) {
 //
 static Token scanToken() {
     skipWhiteSpaces();
-    char ch = peek();
-    
-    advance();
+    scanner.start = scanner.curr;
+
+    if (isAtEnd()) return makeFromType(TOKEN_EOF);
+
+    char ch = advance();
 
     switch (ch)
     {
         case '*': return makeFromType(TOKEN_STAR);
-        default:
-            return makeFromType(TOKEN_EOF);
+        case '+': return makeFromType(TOKEN_PLUS);
+        case '-': return makeFromType(TOKEN_MINUS);
+        case '(': return makeFromType(TOKEN_LEFT_PAREN);
+        case ')': return makeFromType(TOKEN_RIGHT_PAREN);
+        case '{': return makeFromType(TOKEN_LEFT_BRACE);
+        case '}': return makeFromType(TOKEN_RIGHT_BRACE);
+        case '/': return makeFromType(TOKEN_SLASH);
+        case ',': return makeFromType(TOKEN_COMMA);
+        case '.': return makeFromType(TOKEN_DOT);
+        case ':': return makeFromType(TOKEN_COLON);
+        case '\n': return makeFromType(TOKEN_NEW_LINE);
+        case '!':
+            return match('=')? makeFromType(TOKEN_BANG_EQUAL):makeFromType(TOKEN_BANG);
+        case '=':
+            return match('=')? makeFromType(TOKEN_EQUAL_EQUAL): makeFromType(TOKEN_EQUAL);
+        case '<':
+            return match('=')? makeFromType(TOKEN_LESS_EQUAL) : makeFromType(TOKEN_LESS);
+        case '>':
+            return match('=')? makeFromType(TOKEN_GREATER_EQUAL) : makeFromType(TOKEN_GREATER);
     }
 
 }
 
-static TokenList* scanTokens() {
-    TokenList* list = new_token_list();
+//Scances for tokens from the entire content of a program and constructs a list of tokens.
+TokenList* scanTokens(char* program) {
+    initScanner(program);
 
-    while(!isAtEnd()) {
+    TokenList* list = new_token_list();
+    bool atEnd = false;
+
+    while(!atEnd) {
         Token token = scanToken();   
         token_add(list, token);
+        if (token.type == TOKEN_EOF) atEnd = true;
     }
 
     return list;    
-}
-
-TokenList* parseTokens() {
-    char* program = readFile();
-
-    initScanner(program);
-    TokenList* list = scanTokens();
-
-    return list;
 }

@@ -1,6 +1,9 @@
 CC=gcc
 TEST_SRC=test/unity.c
 
+all: main.c scanner/scanner.c data_structures/tokens.c test/debug.c
+	$(CC) -o main $^
+
 symtable_test: test/symtable_test.c data_structures/symtable.c
 	$(CC) -o $@ $^ $(TEST_SRC) -I. -lm
 
