@@ -6,6 +6,7 @@
         "tokens.h": "c",
         "stdio.h": "c",
         "tokentypes.h": "c",
-        "instruction.h": "c"
+        "instruction.h": "c",
+        "str.h": "c"
     }
 }
