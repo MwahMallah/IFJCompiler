@@ -13,6 +13,7 @@
 */
 
 #define INITIAL_SIZE 53
+#define REHASH_INCREMENT 7
 
 // structure that represents every symbol in table
 typedef struct {  
@@ -33,11 +34,11 @@ typedef struct {
     Library API
 */
 
-symtable* new_symtable(); //creates new symbol table
-void symtable_add(symtable* symbols, char* key, char* value);
-char* symtable_find(symtable* symbols, char* key); //searches for  value by a given key
-void symtable_delete_pair(symtable* symbols, char* key); //deletes entry with a given key
-void symtable_delete_table(symtable* symbols); //deletes table itself
+symtable* symtable_create_table(); //creates new symbol table
+void symtable_delete_table(symtable* table); //deletes table itself
+void symtable_insert_pair(symtable* table, char* key, char* value);
+char* symtable_get_pair(symtable* table, char* key); //searches for  value by a given key
+void symtable_delete_pair(symtable* table, char* key); //deletes entry with a given key
 
 /**/
 
