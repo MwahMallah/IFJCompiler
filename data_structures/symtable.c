@@ -87,8 +87,7 @@ void symtable_insert_pair(symtable *table, char *key, char *value){
 char *symtable_get_pair(symtable *table, char *key){
     int hashToFind = get_hash_by_key(table, key);
     if(hashToFind == -1) return NULL;
-    char *value = copy_string(table->pairs[hashToFind]->value);
-    return value;
+    return table->pairs[hashToFind]->value;
 }
 /*
     Deletes key-value pair from symbol table.
