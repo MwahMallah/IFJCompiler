@@ -76,8 +76,11 @@ char* getType(TokenType type) {
         case TOKEN_STRING:
                     string = "TOKEN_STRING";
                     break;
-        case TOKEN_NUMBER:
-                    string = "TOKEN_NUMBER";
+        case TOKEN_INTEGER:
+                    string = "TOKEN_INTEGER";
+                    break;
+        case TOKEN_FLOAT:
+                    string = "TOKEN_FLOAT";
                     break;
         case TOKEN_ELSE:
                     string = "TOKEN_ELSE";
@@ -136,6 +139,6 @@ void printToken(Token token) {
     if (token.type == TOKEN_EOF || token.type == TOKEN_NEW_LINE) {
         printf("%s\n", type);
     } else {
-        printf("%s, '%.*s'\n", type, token.length, token.start);
+        printf("%s, '%s'\n", type, token.lexeme);
     }
 }

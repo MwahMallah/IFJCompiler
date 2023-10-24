@@ -3,6 +3,7 @@
 /*  implementace: Anastasiia Mironova (xmiron05)    */
 /* **************************************************/
 
+#include "../data_structures/str.h"
 #include "scanner.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -86,6 +87,7 @@ static char peekPrevios() {
     return scanner.curr[-1];
 }
 
+
 //If current points to EOF returns true.
 static bool isAtEnd() {
     return peek() == '\0';
@@ -97,20 +99,33 @@ static char peekNext() {
     return scanner.curr[1];
 }
 
+//finds length of resulting string. For characters, with ascii code equal to 
+//0-32, 35 and 92 length of one char is 4
+static int findStringLength() {
+    char* strPtr = scanner.start;
+
+    int length = 0;
+    while (strPtr != scanner.curr){
+        length++;
+        if ((strPtr[0] >= 0 && strPtr[0] <= 32) || (strPtr[0] == 35) || (strPtr[0] == 92)) length += 3;
+        strPtr++;
+    }
+    return length;
+}
+
+static void addChar(char* string, char ch, int* pos) {
+    if ((ch <= 32 && ch >= 0) || (ch == 35) || (ch == 92)) {
+        sprintf(string + *pos, "\\%03d", (int)ch);
+        (*pos) += 4;
+    } else {
+        string[*pos] = ch;
+        (*pos)++;
+    }
+}
+
 
 //Skips all white spaces, tabulations and commentaries.
 static void skipWhiteSpaces() {
-    // while (match(' ') || match('\t') || match('/')) {
-    //     if (peekPrevios() == '/') {
-    //         if (match('/')) {
-    //             while (!match('\n')) advance();   
-    //         } else if (match('*')) {
-    //             while (!match('*')) advance();
-    //             if (!match('/')) exit(1);
-    //         }
-    //     }
-    // }
-
     for(;;) { // infinite loop
         char ch = peek();
         switch (ch)
@@ -133,32 +148,61 @@ static void skipWhiteSpaces() {
     }
 }
 
+//Makes token from a given type
 static Token makeFromType(TokenType type) {
-    int length = (int) (scanner.curr - scanner.start);
-    return makeToken(type, scanner.start, length);
+    char* lexeme;
+    int i = 0;
+    char ch;
+    int length = (int) (scanner.curr - scanner.start); 
+
+    if (type == TOKEN_STRING) {
+        int stringLength = findStringLength();
+        lexeme = malloc(sizeof(char) * (stringLength + 1));
+
+        for (int pos = 1; pos < length - 1; pos++) { //starts from 1 to escape '"'
+            ch = scanner.start[pos];
+            addChar(lexeme, ch, &i);
+        }
+    } else {
+        lexeme = malloc(sizeof(char) * (length + 1)); //allocates space for needed lexeme
+
+        for (i = 0; i < length; i++) {
+            lexeme[i] = scanner.start[i]; //populates lexeme with chars from give input
+        }    
+    }
+    lexeme[i] = '\0';
+    return makeToken(type, lexeme);
 }
 
 
-static bool isNumber() {
-    char ch = scanner.curr[0];
+static bool isNumber(char ch) {
     return ch >= '0' && ch <= '9';
 }
 
 static bool isAlpha() {
     char ch = scanner.curr[0];
-    return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z');
+    return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch == '_');
 }
 
 static Token number() {
-    while (isNumber()) advance();
-    return makeFromType(TOKEN_NUMBER);
+    while (isNumber(peek())) advance();
+
+    if (peek() == '.' && isNumber(peekNext())) {
+        advance();
+        while (isNumber(peek())) advance();
+        return makeFromType(TOKEN_FLOAT);
+    }
+    return makeFromType(TOKEN_INTEGER);
 }
 
+static Token string() {
+    while (peek() != '"' && !isAtEnd()){
+        advance();
+    } 
+    advance();
+    return makeFromType(TOKEN_STRING);
+}
 
-
-
-//func
-//funA
 static Token checkKeyWord(int start, int end, char* word, TokenType type) {
     for (int i = start; i <= end; i++) {
         if (scanner.start[i] != word[i - start]) return makeFromType(TOKEN_IDENTIFIER);
@@ -178,12 +222,15 @@ static Token makeIdentifier() {
         case 'r': return checkKeyWord(1, 5, "eturn", TOKEN_RETURN);
         case 'l': return checkKeyWord(1, 2, "et", TOKEN_LET);
         case 'v': return checkKeyWord(1, 2, "ar", TOKEN_VAR);
-        case 'f': return checkKeyWord(1, 2, "unc", TOKEN_FUNC);
+        case 'f':
+            if (scanner.start[1] == 'u') return checkKeyWord(2, 3, "nc", TOKEN_FUNC);
+            else if (scanner.start[1] == 'a') return checkKeyWord(2, 4, "lse", TOKEN_FALSE);
         case 'i': return checkKeyWord(1, 1, "f", TOKEN_IF);
         case 'e': return checkKeyWord(1, 3, "lse", TOKEN_ELSE);
         case 'w': 
             if (scanner.start[1] == 'i') return checkKeyWord(2, 2, "th", TOKEN_WITH);
             else if (scanner.start[1] == 'h') return checkKeyWord(2, 3, "ile", TOKEN_WHILE);
+        case 't': return checkKeyWord(1, 3, "rue", TOKEN_TRUE);
 
     }
 
@@ -191,7 +238,7 @@ static Token makeIdentifier() {
 }
 
 static Token identifier() {
-    while (isAlpha() || isNumber()) advance();
+    while (isAlpha() || isNumber(peek())) advance();
     return makeIdentifier();
 }
 
@@ -203,7 +250,7 @@ static Token scanToken() {
 
     if (isAtEnd()) return makeFromType(TOKEN_EOF);
 
-    if (isNumber()) return number();
+    if (isNumber(peek())) return number();
     if (isAlpha()) return identifier();
 
     char ch = advance();
@@ -229,6 +276,8 @@ static Token scanToken() {
             return match('=')? makeFromType(TOKEN_LESS_EQUAL) : makeFromType(TOKEN_LESS);
         case '>':
             return match('=')? makeFromType(TOKEN_GREATER_EQUAL) : makeFromType(TOKEN_GREATER);
+        case '"':
+            return string();
     }
 
 }

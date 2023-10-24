@@ -77,25 +77,24 @@ void token_add(TokenList* tokens, Token new_token) {
 /*
     Deallocates whole structure of tokens list.
 */
-void token_delete_tokens(TokenList* tokens) {
-    //TODO
+void token_delete_tokens(TokenList* list) {
+    if (list == NULL) return;
 
-    if (tokens == NULL) {
-        return;
+    for (int i = 0; i < list->size; i++) {
+        free(list->tokens[i].lexeme);    
     }
 
-    free(tokens->tokens);
-    free(tokens);
+    free(list->tokens);
+    free(list);
 
     return;
 }
 
 // Returns new token
-Token makeToken(TokenType type, const char* start, int length) {
+Token makeToken(TokenType type, char* lexeme) {
     Token tok; 
     tok.type = type;
-    tok.start = start;
-    tok.length = length;
+    tok.lexeme = lexeme;
 
     return tok;
 }
