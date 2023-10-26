@@ -5,8 +5,6 @@
 
 #include "unity.h"
 #include "../data_structures/symtable.h"
-#include <stdlib.h>
-#include <time.h>
 
 void setUp(void) {
 }

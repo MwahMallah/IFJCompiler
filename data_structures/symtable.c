@@ -1,6 +1,7 @@
 #include <stdio.h>//????
 #include <stdlib.h>
 #include "symtable.h"
+#include "stdint.h"
 
 /********************symtable.C*********************/
 /*  Předmět: IFJ - FIT VUT v Brně                  */
@@ -152,13 +153,20 @@ static symbol *create_symbol(char *key, char* value){
  * hash if rehashing is completed
  */
 static int hash_function(char *key, int tableSize){
-    unsigned int hash = 0;
+//    unsigned int hash = 0;
+//    int c;
+//    while ((c = *key++)) {
+//        hash = (hash * 31 + c);
+//    }
+//    hash = hash % tableSize;
+//    return hash;
+    uint32_t hash = 2166136261u;
     int c;
-    while ((c = *key++)) {
-        hash = (hash * 31 + c);
+    while (c = *key++){
+        hash ^= (uint8_t)c;
+        hash *= 16777619;
     }
-    hash = hash % tableSize;
-    return hash;
+    return hash % tableSize;
 }
 
 static int rehash_function(int hash, int tableSize){
