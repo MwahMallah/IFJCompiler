@@ -4,7 +4,7 @@ TEST_SRC=test/unity.c
 all: main.c scanner/scanner.c data_structures/tokens.c data_structures/str.c test/debug.c codeGenerator/compiler.c
 	$(CC) -o main $^
 
-symtable_test: test/symtable_test.c data_structures/symtable.c
+symtable_test: test/symtable_test.c data_structures/symtable.c data_structures/str.c
 	$(CC) -o $@ $^ $(TEST_SRC) -I. -lm
 
 token_list_test: test/tokens_test.c data_structures/tokens.c

@@ -45,3 +45,34 @@ void addMinus(Token* token) {
     free(token->lexeme);
     token->lexeme = newLexeme;
 }
+
+
+int compare_strings(char *str1, char *str2){
+    while(*str1 && *str2){
+        if(*str1 != *str2) return 0;
+        str1++;
+        str2++;
+    }
+    if(*str1 == '\0' && *str2 == '\0'){
+        return 1;
+    }
+    return 0;
+}//todo is public?
+
+
+/*
+ * Creates pointer to block of allocated memory
+ * which contains copy of str string
+ */
+char *copy_string(char *str){
+    int length = 0;
+    while(str[length] != '\0'){
+        length++;
+    }
+    char *newStr = malloc(sizeof(char) * (length + 1));
+    for(int i = 0; i < length; ++i){
+        newStr[i] = str[i];
+    }
+    newStr[length] = '\0';
+    return newStr;
+}
