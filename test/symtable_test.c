@@ -76,10 +76,44 @@ void test_insert_and_update_pair(void) {
     symtable_delete_table(table);
 }
 
+void test_insert_and_delete_and_find_pair(void) {
+    symtable* table = symtable_create_table();
+
+    for (int i = 0; i < 1000; i++) {
+        char key[20];
+        sprintf(key, "key%d", i);
+        char value[20];
+        sprintf(value, "value%d", i);
+        symtable_insert_pair(table, key, value);
+    }
+    //deletes every third pair
+    for (int i = 0; i < 1000; i++) {
+        if(i % 2 != 0) continue;
+        char key[20];
+        sprintf(key, "key%d", i);
+        symtable_delete_pair(table, key);
+        TEST_ASSERT_NULL(symtable_get_pair(table, key));
+    }
+
+    for (int i = 0; i < 1000; i++) {
+        char key[20];
+        sprintf(key, "key%d", i);
+        char value[20];
+        sprintf(value, "value%d", i);
+        if(i % 2 == 0)
+            TEST_ASSERT_NULL(symtable_get_pair(table, key));
+        else
+            TEST_ASSERT_EQUAL_STRING(value, symtable_get_pair(table, key));
+    }
+
+
+    symtable_delete_table(table);
+}
+
 void test_many_operations(void) {
     symtable* table = symtable_create_table();
 
-    for (int i = 0; i < 200; i++) {
+    for (int i = 0; i < 10000; i++) {
         char key[20];
         sprintf(key, "key%d", i);
         char value[20];
@@ -87,7 +121,7 @@ void test_many_operations(void) {
         symtable_insert_pair(table, key, value);
     }
 
-    for (int i = 0; i < 200; i++) {
+    for (int i = 0; i < 10000; i++) {
         char key[20];
         sprintf(key, "key%d", i);
         char value[20];
@@ -96,7 +130,7 @@ void test_many_operations(void) {
     }
 
 
-    for (int i = 0; i < 200; i++) {
+    for (int i = 0; i < 10000; i++) {
         char key[20];
         sprintf(key, "key%d", i);
         symtable_delete_pair(table, key);
@@ -112,6 +146,7 @@ int main(void) {
     RUN_TEST(test_get_pair_not_found);
     RUN_TEST(test_insert_and_delete_pair);
     RUN_TEST(test_insert_and_update_pair);
+    RUN_TEST(test_insert_and_delete_and_find_pair);
     RUN_TEST(test_many_operations);
     return UNITY_END();
 }
