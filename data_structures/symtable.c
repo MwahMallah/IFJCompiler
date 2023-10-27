@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "symtable.h"
 #include "stdint.h"
+#include "str.h"
 
 /********************symtable.C*********************/
 /*  Předmět: IFJ - FIT VUT v Brně                  */
@@ -20,12 +21,8 @@ static int rehash_function(int hash, int tableSize);
 static void print_table(symtable *table);
 static void error_search(symtable *table);
 
-static char *copy_string(char *str);
-static int compare_strings(char *str1, char *str2);
-
 static int find_next_prime(int current);
 static int is_prime(int n);
-
 
 /*
     Creates new symbol table, sets size of symbol table to INITIAL_SIZE, count to zero. If memory wasn't allocated returns NULL.    
@@ -130,7 +127,7 @@ static void resize_table(symtable *table){
 }
 
 static symbol **init_pairs(int size){
-    symbol **new_pairs = malloc(sizeof(symbol) * size);
+    symbol **new_pairs = malloc(sizeof(symbol*) * size);
     //checking if memory was allocated successfully
     if(new_pairs == NULL){
         exit(99);
@@ -235,35 +232,35 @@ static int find_next_prime(int current){
 }
 
 
-/*
- * Creates pointer to block of allocated memory
- * which contains copy of str string
- */
-static char *copy_string(char *str){
-    int length = 0;
-    while(str[length] != '\0'){
-        length++;
-    }
-    char *newStr = malloc(sizeof(char) * (length + 1));
-    for(int i = 0; i < length; ++i){
-        newStr[i] = str[i];
-    }
-    newStr[length] = '\0';
-    return newStr;
-}//todo is public?
-/*
- * Returns:
- * 0 if unequal
- * 1 if equal
- */
-static int compare_strings(char *str1, char *str2){
-    while(*str1 && *str2){
-        if(*str1 != *str2) return 0;
-        str1++;
-        str2++;
-    }
-    if(*str1 == '\0' && *str2 == '\0'){
-        return 1;
-    }
-    return 0;
-}//todo is public?
+// /*
+//  * Creates pointer to block of allocated memory
+//  * which contains copy of str string
+//  */
+// static char *copy_string(char *str){
+//     int length = 0;
+//     while(str[length] != '\0'){
+//         length++;
+//     }
+//     char *newStr = malloc(sizeof(char) * (length + 1));
+//     for(int i = 0; i < length; ++i){
+//         newStr[i] = str[i];
+//     }
+//     newStr[length] = '\0';
+//     return newStr;
+// }//todo is public?
+// /*
+//  * Returns:
+//  * 0 if unequal
+//  * 1 if equal
+//  */
+// static int compare_strings(char *str1, char *str2){
+//     while(*str1 && *str2){
+//         if(*str1 != *str2) return 0;
+//         str1++;
+//         str2++;
+//     }
+//     if(*str1 == '\0' && *str2 == '\0'){
+//         return 1;
+//     }
+//     return 0;
+// }//todo is public?

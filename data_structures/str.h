@@ -6,5 +6,8 @@
 
 double strtodouble(char* lexeme);
 void addMinus(Token* token);
+int compare_strings(char *str1, char *str2);
+char *copy_string(char *str);
+
 
 #endif
