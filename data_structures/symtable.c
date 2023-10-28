@@ -24,6 +24,7 @@ static void error_search(symtable *table);
 static int find_next_prime(int current);
 static int is_prime(int n);
 
+
 /*
     Creates new symbol table, sets size of symbol table to INITIAL_SIZE, count to zero. If memory wasn't allocated returns NULL.    
 */
@@ -61,7 +62,7 @@ void symtable_delete_table(symtable* table) {
     Increments count by one if operation succeeded.
 */
 void symtable_insert_pair(symtable *table, char *key, char *value){
-    if(table->count == table->size){
+    if(table->count > (table->size * LOAD_FACTOR)){
         resize_table(table);
     }
     int hashToAdd = get_hash_by_key(table, key);
