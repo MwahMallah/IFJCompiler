@@ -204,6 +204,8 @@ static Token string() {
 }
 
 static Token checkKeyWord(int start, int end, char* word, TokenType type) {
+    if (start + end != scanner.curr - scanner.start) return makeFromType(TOKEN_IDENTIFIER);
+    
     for (int i = start; i <= end; i++) {
         if (scanner.start[i] != word[i - start]) return makeFromType(TOKEN_IDENTIFIER);
     }
@@ -230,6 +232,7 @@ static Token makeIdentifier() {
         case 'w': 
             if (scanner.start[1] == 'i') return checkKeyWord(2, 2, "th", TOKEN_WITH);
             else if (scanner.start[1] == 'h') return checkKeyWord(2, 3, "ile", TOKEN_WHILE);
+            else if (scanner.start[1] == 'r') return checkKeyWord(2, 3, "ite", TOKEN_WRITE);
         case 't': return checkKeyWord(1, 3, "rue", TOKEN_TRUE);
 
     }
@@ -267,7 +270,7 @@ static Token scanToken() {
         case ',': return makeFromType(TOKEN_COMMA);
         case '.': return makeFromType(TOKEN_DOT);
         case ':': return makeFromType(TOKEN_COLON);
-        case '\n': return makeFromType(TOKEN_NEW_LINE);
+        case '\n': return makeFromType(TOKEN_EOL);
         case '!':
             return match('=')? makeFromType(TOKEN_BANG_EQUAL):makeFromType(TOKEN_BANG);
         case '=':

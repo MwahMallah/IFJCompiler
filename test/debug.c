@@ -43,8 +43,8 @@ char* getType(TokenType type) {
         case TOKEN_STAR:
                     string = "TOKEN_STAR";
                     break;   
-        case TOKEN_NEW_LINE:
-                    string = "TOKEN_NEW_LINE";
+        case TOKEN_EOL:
+                    string = "TOKEN_EOL";
                     break; 
         case TOKEN_BANG:
                     string = "TOKEN_BANG";
@@ -124,6 +124,9 @@ char* getType(TokenType type) {
         case TOKEN_WITH:
                     string = "TOKEN_WITH";
                     break;
+        case TOKEN_WRITE:
+            string = "TOKEN_WRITE";
+            break;
         case TOKEN_EOF:
                     string = "TOKEN_EOF";
                     break;
@@ -136,7 +139,7 @@ char* getType(TokenType type) {
 
 void printToken(Token token) {
     char* type = getType(token.type);
-    if (token.type == TOKEN_EOF || token.type == TOKEN_NEW_LINE) {
+    if (token.type == TOKEN_EOF || token.type == TOKEN_EOL) {
         printf("%s\n", type);
     } else {
         printf("%s, '%s'\n", type, token.lexeme);
