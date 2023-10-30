@@ -34,8 +34,8 @@ typedef struct
 } Parser;
 
 //global instance of parser
-Parser parser;
-TokenList* list;
+static Parser parser;
+static TokenList* list;
 
 //moves parser to next token
 static void advance() {

@@ -7,6 +7,9 @@
         "stdio.h": "c",
         "tokentypes.h": "c",
         "instruction.h": "c",
-        "str.h": "c"
+        "str.h": "c",
+        "symtable.h": "c",
+        "stdlib.h": "c",
+        "parser.h": "c"
     }
 }
