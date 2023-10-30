@@ -12,11 +12,12 @@
 static void resize_table(symtable *table);
 static symbol *create_symbol(char *key, char* value);
 static symbol **init_pairs(int size);
-static int get_hash_by_key(symtable *table, char *key);
-static int get_addable_by_key(symtable *table, char *key);
+static int find_bucket_by_key(symtable *table, char *key);
+static int find_addable_bucket(symtable *table, char *key);
 
-static int hash_function(char *key, int tableSize);
-static int rehash_function(int hash, int tableSize);
+static uint32_t hash_function(char *key);
+static int get_bucket(char *key, int tableSize);
+static int linear_probe(int bucket, int tableSize);
 
 static void print_table(symtable *table);
 static void error_search(symtable *table);
@@ -24,14 +25,14 @@ static void error_search(symtable *table);
 static int find_next_prime(int current);
 static int is_prime(int n);
 
+
 /*
     Creates new symbol table, sets size of symbol table to INITIAL_SIZE, count to zero. If memory wasn't allocated returns NULL.    
 */
 symtable* symtable_create_table(){
     symtable *newTable = malloc(sizeof(symtable));
     if(newTable == NULL){
-        return NULL;
-        //todo errorcode
+        exit(99);
     }
     newTable->count = 0;
     newTable->size = INITIAL_SIZE;
@@ -61,20 +62,20 @@ void symtable_delete_table(symtable* table) {
     Increments count by one if operation succeeded.
 */
 void symtable_insert_pair(symtable *table, char *key, char *value){
-    if(table->count == table->size){
+    if(table->count > (table->size * LOAD_FACTOR)){
         resize_table(table);
     }
-    int hashToAdd = get_hash_by_key(table, key);
-    if(hashToAdd != -1){
-        free(table->pairs[hashToAdd]->value);
-        table->pairs[hashToAdd]->value = copy_string(value);
+    int bucketToAdd = find_bucket_by_key(table, key);
+    if(bucketToAdd != -1){
+        free(table->pairs[bucketToAdd]->value);
+        table->pairs[bucketToAdd]->value = copy_string(value);
         return;
     }
-    hashToAdd = get_addable_by_key(table, key);
-    if(table->pairs[hashToAdd] != NULL){
-        free(table->pairs[hashToAdd]);
+    bucketToAdd = find_addable_bucket(table, key);
+    if(table->pairs[bucketToAdd] != NULL){
+        free(table->pairs[bucketToAdd]);
     }
-    table->pairs[hashToAdd] = create_symbol(key, value);
+    table->pairs[bucketToAdd] = create_symbol(key, value);
     table->count++;
 }
 /*
@@ -83,22 +84,22 @@ void symtable_insert_pair(symtable *table, char *key, char *value){
  * NULL if pair wasn't found
  */
 char *symtable_get_pair(symtable *table, char *key){
-    int hashToFind = get_hash_by_key(table, key);
-    if(hashToFind == -1) return NULL;
-    return table->pairs[hashToFind]->value;
+    int bucketToFind = find_bucket_by_key(table, key);
+    if(bucketToFind == -1) return NULL;
+    return table->pairs[bucketToFind]->value;
 }
 /*
     Deletes key-value pair from symbol table.
 */
 void symtable_delete_pair(symtable *table, char *key){
-    int hashToRemove = get_hash_by_key(table, key);
-    if(hashToRemove == -1){
+    int bucketToRemove = find_bucket_by_key(table, key);
+    if(bucketToRemove == -1){
         return;
     }
-    free(table->pairs[hashToRemove]->key);
-    free(table->pairs[hashToRemove]->value);
-    table->pairs[hashToRemove]->key = NULL;
-    table->pairs[hashToRemove]->value = NULL;
+    free(table->pairs[bucketToRemove]->key);
+    free(table->pairs[bucketToRemove]->value);
+    table->pairs[bucketToRemove]->key = NULL;
+    table->pairs[bucketToRemove]->value = NULL;
     table->count--;
 }
 
@@ -144,64 +145,59 @@ static symbol *create_symbol(char *key, char* value){
     newPair->value = copy_string(value);
     return newPair;
 }
-/*
- * Returns:
- * -1 if table is full
- * hash if rehashing is completed
- */
-static int hash_function(char *key, int tableSize){
-//    unsigned int hash = 0;
-//    int c;
-//    while ((c = *key++)) {
-//        hash = (hash * 31 + c);
-//    }
-//    hash = hash % tableSize;
-//    return hash;
+
+static uint32_t hash_function(char *key){
     uint32_t hash = 2166136261u;
     int c;
     while (c = *key++){
         hash ^= (uint8_t)c;
         hash *= 16777619;
     }
-    return hash % tableSize;
+    return hash;
+}
+/*
+ * Returns bucket according to size of table and hash, generated for key.
+ */
+static int get_bucket(char *key, int tableSize){
+    return hash_function(key) % tableSize;
 }
 
-static int rehash_function(int hash, int tableSize){
-    int newHash = (hash + REHASH_INCREMENT) % tableSize;
-    return newHash;
+static int linear_probe(int bucket, int tableSize){
+    int newBucket = (bucket + PROBING_INCREMENT) % tableSize;
+    return newBucket;
 }
 /*
  * Returns:
  * -1 if key wasn't found
- * hash of key if was found
+ * bucket of key if was found
  */
-static int get_hash_by_key(symtable *table, char *key){
-    int hash = hash_function(key, table->size);
-    while(table->pairs[hash] != NULL){
-        if(table->pairs[hash]->key != NULL){
-            if(compare_strings(table->pairs[hash]->key, key) == 1)
-                return hash;
+static int find_bucket_by_key(symtable *table, char *key){
+    int bucket = get_bucket(key, table->size);
+    while(table->pairs[bucket] != NULL){
+        if(table->pairs[bucket]->key != NULL){
+            if(compare_strings(table->pairs[bucket]->key, key) == 1)
+                return bucket;
         }
-        hash = rehash_function(hash, table->size);
+        bucket = linear_probe(bucket, table->size);
         //checking if whole table was searched
-        if(hash == hash_function(key, table->size)) break;
+        if(bucket == get_bucket(key, table->size)) break;
     }
     return -1;
 }
 /*
  * Returns:
  * -1 if addable place wasn't found
- * hash of addable place if was found
+ * bucket of addable place if was found
  */
-static int get_addable_by_key(symtable *table, char *key){
-    int hash = hash_function(key, table->size);
-    while(table->pairs[hash] != NULL && table->pairs[hash]->key != NULL){
-        hash = rehash_function(hash, table->size);
+static int find_addable_bucket(symtable *table, char *key){
+    int bucket = get_bucket(key, table->size);
+    while(table->pairs[bucket] != NULL && table->pairs[bucket]->key != NULL){
+        bucket = linear_probe(bucket, table->size);
         //checking if whole table wasn't searched
-        if(hash == hash_function(key, table->size))
+        if(bucket == get_bucket(key, table->size))
             return -1;
     }
-    return hash;
+    return bucket;
 }
 
 
@@ -230,37 +226,3 @@ static int find_next_prime(int current){
         next++;
     }
 }
-
-
-// /*
-//  * Creates pointer to block of allocated memory
-//  * which contains copy of str string
-//  */
-// static char *copy_string(char *str){
-//     int length = 0;
-//     while(str[length] != '\0'){
-//         length++;
-//     }
-//     char *newStr = malloc(sizeof(char) * (length + 1));
-//     for(int i = 0; i < length; ++i){
-//         newStr[i] = str[i];
-//     }
-//     newStr[length] = '\0';
-//     return newStr;
-// }//todo is public?
-// /*
-//  * Returns:
-//  * 0 if unequal
-//  * 1 if equal
-//  */
-// static int compare_strings(char *str1, char *str2){
-//     while(*str1 && *str2){
-//         if(*str1 != *str2) return 0;
-//         str1++;
-//         str2++;
-//     }
-//     if(*str1 == '\0' && *str2 == '\0'){
-//         return 1;
-//     }
-//     return 0;
-// }//todo is public?

@@ -13,7 +13,8 @@
 */
 
 #define INITIAL_SIZE 53
-#define REHASH_INCREMENT 7
+#define PROBING_INCREMENT 7
+#define LOAD_FACTOR 0.75
 
 // structure that represents every symbol in table
 typedef struct {  
