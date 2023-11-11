@@ -50,6 +50,7 @@ static void initParsing(TokenList* userList, symtable* userTable) {
 
 static void declaration() {
     if (match(TOKEN_VAR) || match(TOKEN_LET)) {
+
     } else if (match(TOKEN_EOL)) {
     } else {
     }
@@ -59,6 +60,7 @@ void parse(TokenList* list, symtable* table) {
     initParsing(list, table);
 
     while (!match(TOKEN_EOF)) {
-        declaration();   
+        if (match(TOKEN_FUNC)) funcDecl();
+        else declaration();   
     }
 }

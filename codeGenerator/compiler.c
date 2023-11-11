@@ -33,9 +33,61 @@ typedef struct
     Token* current;
 } Parser;
 
+//struct that represents current locals
+typedef struct 
+{
+    Token variable;
+    int depth;
+} Local;
+
+typedef struct 
+{
+    Local variables[256];
+    int scopeDepth;
+    int localPos;
+} LocalList;
+
 //global instance of parser
 static Parser parser;
 static TokenList* list;
+static LocalList locals;
+
+//pushes variable to list of local variables
+static void pushLocal(Token* variable) {
+    Local newLocal;
+    newLocal.variable = *variable;
+    newLocal.depth = locals.scopeDepth;
+    locals.variables[++locals.localPos] = newLocal;
+}
+
+//searches through local variables
+static bool variableIsLocal(Token* variable) {
+    for (int i = locals.localPos; i >= 0; i--) {
+        if (compare_strings(variable->lexeme, locals.variables[i].variable.lexeme) == 1) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+//pops local variable frame
+static void popLocalFrame() {
+    printf("POPFRAME\n");
+    locals.scopeDepth -= 1;
+    int i;
+    for (i = locals.localPos; i >= 0; i--) { //finds position where last frame was
+        if (locals.variables[i].depth == locals.scopeDepth) break;
+    }
+
+    locals.localPos = i; //sets current local position to end of previous frame
+}
+
+//creates local variable frame
+static void createLocalFrame() {
+    printf("CREATEFRAME\nPUSHFRAME\n");
+    locals.scopeDepth += 1;
+}
 
 //moves parser to next token
 static void advance() {
@@ -77,7 +129,7 @@ static void floating() {
 
 static void expression();
 static void statement();
-static void declaration();
+static void declaration(bool isLocal);
 static ParseRule* getRule(TokenType type);
 static void parsePrecedence(Precedence precedence);
 
@@ -97,14 +149,21 @@ static void string() {
 }
 
 static void variable() {
-
     Token* var = parser.previous;
 
     if (match(TOKEN_EQUAL)) {
         expression();
-        printf("POPS GF@%s\n", var->lexeme);
+        if (variableIsLocal(var)) {
+            printf("POPS LF@%s\n", var->lexeme);
+        } else {
+            printf("POPS GF@%s\n", var->lexeme);
+        }
     } else {
-        printf("PUSHS GF@%s\n", var->lexeme);
+        if (variableIsLocal(var)) {
+            printf("PUSHS LF@%s\n", var->lexeme);
+        } else {
+            printf("PUSHS GF@%s\n", var->lexeme);
+        }
     }
 }
 
@@ -208,10 +267,22 @@ static void expression() {
     parsePrecedence(PREC_ASSIGNMENT);
 }
 
-static void variableDeclaration() {
+static void block() {
+    while (!match(TOKEN_RIGHT_BRACE) && !check(TOKEN_EOF)) {
+        declaration(true);
+    }
+    
+}
+
+static void variableDeclaration(bool isLocal) {
     Token* var = parser.current;
     advance(); //check variable type next
-    printf("DEFVAR GF@%s\n", var->lexeme);
+    if (isLocal) {
+        pushLocal(var);
+        printf("DEFVAR LF@%s\n", var->lexeme);
+    } else {
+        printf("DEFVAR GF@%s\n", var->lexeme);
+    }
 
     bool declaredType = false;
 
@@ -225,7 +296,12 @@ static void variableDeclaration() {
         printf("PUSHS nil@nil\n");     
     }
 
-    printf("POPS GF@%s\n", var->lexeme);
+    if (isLocal) {
+        printf("POPS LF@%s\n", var->lexeme);
+    } else {
+        printf("POPS GF@%s\n", var->lexeme);
+    }
+
     if (check(TOKEN_EOF) || match(TOKEN_EOL));
 }
 
@@ -243,9 +319,9 @@ static void expressionStatement() {
     if (check(TOKEN_EOF) || match(TOKEN_EOL));
 }
 
-static void declaration() {
+static void declaration(bool isLocal) {
     if (match(TOKEN_VAR) || match(TOKEN_LET)) {
-        variableDeclaration();
+        variableDeclaration(isLocal);
     } else if (match(TOKEN_EOL)) {
     } else {
         statement();
@@ -255,6 +331,10 @@ static void declaration() {
 static void statement() {
     if (match(TOKEN_WRITE)) {
         writeStatement();
+    } else if (match(TOKEN_LEFT_BRACE)) {
+        createLocalFrame();
+        block();
+        popLocalFrame();
     } else {
         expressionStatement();
     }
@@ -264,6 +344,8 @@ static void statement() {
 static void initCompiler(TokenList* userList) {
     parser.previous = userList->tokens;
     parser.current = (userList->tokens);
+    locals.localPos = -1;
+    locals.scopeDepth = 0;
     list = userList;
 
     printf(".IFJcode23\n\n");
@@ -283,7 +365,7 @@ int compile(TokenList* list) {
 
     // advance();
     while (!match(TOKEN_EOF)) {
-        declaration();
+        declaration(false);
     }
     
     endCompilation();
