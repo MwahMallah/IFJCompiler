@@ -51,6 +51,7 @@ typedef struct
 static Parser parser;
 static TokenList* list;
 static LocalList locals;
+static int jumpNumber;
 
 //pushes variable to list of local variables
 static void pushLocal(Token* variable) {
@@ -132,6 +133,7 @@ static void statement();
 static void declaration(bool isLocal);
 static ParseRule* getRule(TokenType type);
 static void parsePrecedence(Precedence precedence);
+static void variableDeclaration(bool isLocal, bool inFunctionParams);
 
 //parses literal expression
 static void literal() {
@@ -271,10 +273,36 @@ static void block() {
     while (!match(TOKEN_RIGHT_BRACE) && !check(TOKEN_EOF)) {
         declaration(true);
     }
-    
 }
 
-static void variableDeclaration(bool isLocal) {
+static void funcDeclaration() {
+    Token* funcName = parser.current;
+    match(TOKEN_IDENTIFIER);
+
+    printf("LABEL $%s\n", funcName->lexeme);
+    printf("PUSHFRAME\n");
+
+    int argumentNum = 1;
+    consume(TOKEN_LEFT_PAREN);
+    if (!check(TOKEN_RIGHT_PAREN)) {
+        do
+        {
+            if (match(TOKEN_IDENTIFIER) || match(TOKEN_WITH));
+            Token* arg = parser.current; //current arg
+            variableDeclaration(true, true);
+            printf("MOVE LF@%s LF@%%%d\n", arg->lexeme, argumentNum++);
+        } while(match(TOKEN_COMMA));
+    }
+    consume(TOKEN_RIGHT_PAREN);
+    consume(TOKEN_ARROW);
+    consume(TOKEN_TYPE_STRING);
+    consume(TOKEN_LEFT_BRACE);
+    block();
+    printf("POPFRAME\n");
+    printf("RETURN\n");
+}
+
+static void variableDeclaration(bool isLocal, bool inFunctionParams) {
     Token* var = parser.current;
     advance(); //check variable type next
     if (isLocal) {
@@ -288,21 +316,25 @@ static void variableDeclaration(bool isLocal) {
 
     if (match(TOKEN_COLON) && (match(TOKEN_TYPE_DOUBLE) || match(TOKEN_TYPE_INT) || match(TOKEN_TYPE_STRING))) {
         declaredType = true;
+        printf("%s: type declared\n", var->lexeme);
     }
 
-    if (match(TOKEN_EQUAL)) {
-        expression();
-    } else {
-        printf("PUSHS nil@nil\n");     
-    }
+    if (!inFunctionParams) {
+        if (match(TOKEN_EQUAL)) {
+            expression();
+        } else {
+            printf("PUSHS nil@nil\n");     
+        }
 
-    if (isLocal) {
-        printf("POPS LF@%s\n", var->lexeme);
-    } else {
-        printf("POPS GF@%s\n", var->lexeme);
-    }
+        if (isLocal) {
+            printf("POPS LF@%s\n", var->lexeme);
+        } else {
+            printf("POPS GF@%s\n", var->lexeme);
+        }
 
-    if (check(TOKEN_EOF) || match(TOKEN_EOL));
+        if (check(TOKEN_EOF) || match(TOKEN_EOL));
+    }
+    
 }
 
 static void writeStatement() {
@@ -314,14 +346,69 @@ static void writeStatement() {
     if (check(TOKEN_EOF) || match(TOKEN_EOL));
 }
 
+static void ifStatement() {
+    if (match(TOKEN_LET)) {
+        printf("PUSHS nil@nil\n");
+        advance();
+        variable();
+    } else if (match(TOKEN_LEFT_PAREN)) {
+        expression();
+        match(TOKEN_RIGHT_PAREN);
+        printf("PUSHS bool@false\n"); //JUMPIFNEQS takes two values from stack, so we push one more
+    }
+
+    int ifStmtNum = jumpNumber++;
+
+    printf("JUMPIFEQS elseJump%d\n", ifStmtNum); //escapes then statement
+
+    match(TOKEN_EOL); //if here is EOL doesn't matter
+    match(TOKEN_LEFT_BRACE);
+    createLocalFrame();
+    block();
+    popLocalFrame();
+    printf("JUMP thenJump%d\n", ifStmtNum); //escapes else statement
+
+    printf("LABEL elseJump%d\n", ifStmtNum); //label to jump to
+    if (match(TOKEN_ELSE)) {
+        match(TOKEN_EOL); //if here is EOL doesn't matter
+        match(TOKEN_LEFT_BRACE);
+        createLocalFrame();
+        block();
+        popLocalFrame();
+    }
+
+    printf("LABEL thenJump%d\n", ifStmtNum);
+}
+
+static void whileStatement() {
+    int whileStmtNumber = jumpNumber++;
+    match(TOKEN_LEFT_PAREN);
+    printf("LABEL whileStart%d\n", whileStmtNumber);
+    expression();
+    match(TOKEN_RIGHT_PAREN);
+    printf("PUSHS bool@false\n");
+
+    printf("JUMPIFEQS whileEnd%d\n", whileStmtNumber); //escapes then statement
+
+    match(TOKEN_EOL); //if here is EOL doesn't matter
+    match(TOKEN_LEFT_BRACE);
+    block();
+    printf("JUMP whileStart%d\n", whileStmtNumber); //escapes else statement
+
+    printf("LABEL whileEnd%d\n", whileStmtNumber); //label to jump to
+
+}
+
 static void expressionStatement() {
     expression();
     if (check(TOKEN_EOF) || match(TOKEN_EOL));
 }
 
 static void declaration(bool isLocal) {
-    if (match(TOKEN_VAR) || match(TOKEN_LET)) {
-        variableDeclaration(isLocal);
+    if (match(TOKEN_FUNC)) {
+        while (!match(TOKEN_RIGHT_BRACE)) advance();
+    } else if (match(TOKEN_VAR) || match(TOKEN_LET)) {
+        variableDeclaration(isLocal, false);
     } else if (match(TOKEN_EOL)) {
     } else {
         statement();
@@ -331,6 +418,10 @@ static void declaration(bool isLocal) {
 static void statement() {
     if (match(TOKEN_WRITE)) {
         writeStatement();
+    } else if (match(TOKEN_IF)) {
+        ifStatement();
+    } else if (match(TOKEN_WHILE)) {
+        whileStatement();
     } else if (match(TOKEN_LEFT_BRACE)) {
         createLocalFrame();
         block();
@@ -343,15 +434,25 @@ static void statement() {
 //initialises parser to first token in the list, writes header to output file
 static void initCompiler(TokenList* userList) {
     parser.previous = userList->tokens;
-    parser.current = (userList->tokens);
+    parser.current = userList->tokens;
     locals.localPos = -1;
     locals.scopeDepth = 0;
     list = userList;
+    jumpNumber = 0;
 
     printf(".IFJcode23\n\n");
     printf("DEFVAR GF@tmp_op1\n");
     printf("DEFVAR GF@tmp_op2\n");
     printf("DEFVAR GF@tmp_op3\n");
+    printf("JUMP $$main\n");
+}
+
+static void restartCompiler(TokenList* userList) {
+    parser.previous = userList->tokens;
+    parser.current = userList->tokens;
+    locals.localPos = -1;
+    locals.scopeDepth = 0;
+    list = userList;
 }
 
 //ends compilation process
@@ -363,6 +464,14 @@ static void endCompilation() {
 int compile(TokenList* list) {
     initCompiler(list);
 
+    while (!match(TOKEN_EOF)) {
+        if (match(TOKEN_FUNC)) funcDeclaration();
+        else advance();
+    }
+
+    restartCompiler(list);
+
+    printf("LABEL $$main\n");
     // advance();
     while (!match(TOKEN_EOF)) {
         declaration(false);

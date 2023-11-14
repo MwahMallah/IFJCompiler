@@ -1,0 +1,29 @@
+.IFJcode23
+
+DEFVAR GF@tmp_op1
+DEFVAR GF@tmp_op2
+DEFVAR GF@tmp_op3
+JUMP $$main
+LABEL $concat
+PUSHFRAME
+DEFVAR LF@x
+MOVE LF@x LF@%1
+DEFVAR LF@y
+MOVE LF@y LF@%2
+DEFVAR LF@x
+PUSHS LF@x
+PUSHS GF@y
+ADDS
+POPS LF@x
+POPFRAME
+RETURN
+LABEL $$main
+PUSHS string@Zadejte\032cislo\032pro\032vypocet\032faktorialu\010
+POPS GF@tmp_op3
+WRITE GF@tmp_op3
+PUSHS int@1
+POPS GF@tmp_op3
+WRITE GF@tmp_op3
+PUSHS string@\010
+POPS GF@tmp_op3
+WRITE GF@tmp_op3

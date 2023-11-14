@@ -10,6 +10,9 @@ char* getType(TokenType type) {
     char* string;
     switch (type)
     {
+        case TOKEN_ARROW:
+            string = "TOKEN_ARROW";
+            break;
         case TOKEN_LEFT_PAREN:
             string = "TOKEN_LEFT_PAREN";
             break;

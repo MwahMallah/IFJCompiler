@@ -113,14 +113,41 @@ static int findStringLength() {
     return length;
 }
 
-static void addChar(char* string, char ch, int* pos) {
-    if ((ch <= 32 && ch >= 0) || (ch == 35) || (ch == 92)) {
-        sprintf(string + *pos, "\\%03d", (int)ch);
+static bool addChar(char* string, char ch1, char ch2, int* pos) {
+    if (ch1 == '\\') {
+        int value;
+        switch (ch2)
+        {
+            case 'n':
+                value = 10;
+                break;
+            case 'r':
+                value = 13;
+                break;
+            case 't':
+                value = 9;
+                break;            
+            case '\\':
+                value = 92;
+                break;
+            case '"':
+                value = 34;
+                break;
+            default:
+                exit(1);
+        }
+        sprintf(string + *pos, "\\%03d", value);
+        (*pos) += 4;
+        return true;
+    } else if ((ch1 <= 32 && ch1 >= 0) || (ch1 == 35) || (ch1 == 92)) {
+        sprintf(string + *pos, "\\%03d", (int)ch1);
         (*pos) += 4;
     } else {
-        string[*pos] = ch;
+        string[*pos] = ch1;
         (*pos)++;
     }
+
+    return false;
 }
 
 
@@ -152,16 +179,19 @@ static void skipWhiteSpaces() {
 static Token makeFromType(TokenType type) {
     char* lexeme;
     int i = 0;
-    char ch;
+    char ch1, ch2;
     int length = (int) (scanner.curr - scanner.start); 
 
     if (type == TOKEN_STRING) {
+        bool escapeChar = false;
         int stringLength = findStringLength();
         lexeme = malloc(sizeof(char) * (stringLength + 1));
 
         for (int pos = 1; pos < length - 1; pos++) { //starts from 1 to escape '"'
-            ch = scanner.start[pos];
-            addChar(lexeme, ch, &i);
+            ch1 = scanner.start[pos];
+            ch2 = scanner.start[pos + 1];
+            escapeChar = addChar(lexeme, ch1, ch2, &i);
+            if (escapeChar) pos++;
         }
     } else {
         lexeme = malloc(sizeof(char) * (length + 1)); //allocates space for needed lexeme
@@ -225,8 +255,8 @@ static Token makeIdentifier() {
         case 'l': return checkKeyWord(1, 2, "et", TOKEN_LET);
         case 'v': return checkKeyWord(1, 2, "ar", TOKEN_VAR);
         case 'f':
-            if (scanner.start[1] == 'u') return checkKeyWord(2, 3, "nc", TOKEN_FUNC);
-            else if (scanner.start[1] == 'a') return checkKeyWord(2, 4, "lse", TOKEN_FALSE);
+            if (scanner.start[1] == 'u') return checkKeyWord(2, 2, "nc", TOKEN_FUNC);
+            else if (scanner.start[1] == 'a') return checkKeyWord(2, 3, "lse", TOKEN_FALSE);
         case 'i': return checkKeyWord(1, 1, "f", TOKEN_IF);
         case 'e': return checkKeyWord(1, 3, "lse", TOKEN_ELSE);
         case 'w': 
@@ -234,7 +264,6 @@ static Token makeIdentifier() {
             else if (scanner.start[1] == 'h') return checkKeyWord(2, 3, "ile", TOKEN_WHILE);
             else if (scanner.start[1] == 'r') return checkKeyWord(2, 3, "ite", TOKEN_WRITE);
         case 't': return checkKeyWord(1, 3, "rue", TOKEN_TRUE);
-
     }
 
     return makeFromType(TOKEN_IDENTIFIER);
@@ -261,7 +290,8 @@ static Token scanToken() {
     {
         case '*': return makeFromType(TOKEN_STAR);
         case '+': return makeFromType(TOKEN_PLUS);
-        case '-': return makeFromType(TOKEN_MINUS);
+        case '-': 
+            return match('>')? makeFromType(TOKEN_ARROW): makeFromType(TOKEN_MINUS);
         case '(': return makeFromType(TOKEN_LEFT_PAREN);
         case ')': return makeFromType(TOKEN_RIGHT_PAREN);
         case '{': return makeFromType(TOKEN_LEFT_BRACE);
@@ -281,6 +311,8 @@ static Token scanToken() {
             return match('=')? makeFromType(TOKEN_GREATER_EQUAL) : makeFromType(TOKEN_GREATER);
         case '"':
             return string();
+        default:
+            exit(1);
     }
 
 }
