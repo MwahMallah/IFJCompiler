@@ -14,4 +14,4 @@ scanner_test: test/scanner_test.c scanner/scanner.c data_structures/tokens.c
 	$(CC) -o $@ $^ $(TEST_SRC) -I. -lm
 
 parser_test: test/parser_test.c parser/parser.c scanner/scanner.c data_structures/tokens.c data_structures/symtable.c data_structures/str.c
-	$(cc) -o $@ $^ $(TEST_SRC) -I. -lm
+	$(CC) -o $@ $^ $(TEST_SRC) -I. -lm
