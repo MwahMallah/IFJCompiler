@@ -12,9 +12,16 @@
     our table of symbols will store strings as values for now, it will be changed to something more sophisticated like token structure or expression
 */
 
+#include <stdbool.h>
+
 #define INITIAL_SIZE 53
 #define PROBING_INCREMENT 7
 #define LOAD_FACTOR 0.75
+
+typedef enum{
+    FUNCTION_TABLE,
+    VARIABLE_TABLE
+} tableType;
 
 // structure that represents every symbol in table
 typedef struct {  
@@ -24,18 +31,43 @@ typedef struct {
 
 
 //symbol table itself, represented by hash table with Open addressing
-typedef struct { 
+typedef struct {
+    tableType type;
     int size;
     int count;
     symbol** pairs;
 } symtable;
 
 
+typedef enum type{
+    STRING_TYPE,
+    INT_TYPE,
+    DOUBLE_TYPE,
+    VOID_TYPE
+} dataType;
+
+typedef union data{
+    int intData;
+    double doubleData;
+    char *stringData;
+} variableData;
+
+typedef struct variableInfo{
+    bool isConst;
+    dataType type;
+    variableData value;
+} varInfo;
+
+typedef struct functionInfo{
+    dataType returnType;
+    int numOfParams;
+} funcInfo;
+
 /*
     Library API
 */
 
-symtable* symtable_create_table(); //creates new symbol table
+symtable* symtable_create_table(tableType type); //creates new symbol table
 void symtable_delete_table(symtable* table); //deletes table itself
 void symtable_insert_pair(symtable* table, char* key, char* value);
 char* symtable_get_pair(symtable* table, char* key); //searches for  value by a given key
