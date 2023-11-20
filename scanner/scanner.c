@@ -165,9 +165,15 @@ static void skipWhiteSpaces() {
             case '/':
                 if (peekNext() == '/') {
                     while(peek() != '\n' && !isAtEnd()) {advance();}
-                    advance(); //skip newline after comment end
+                    advance(); //skip newline after comment's end
+                    skipWhiteSpaces();
                 } else if (peekNext() == '*') {
-                    while (peek() != '*' && peekNext() != '/' && !isAtEnd()) {advance();}                    
+                    while ((peek() != '*' || peekNext() != '/') && !isAtEnd()) {
+                        char ch = advance();
+                    }     
+                    advance();
+                    advance();      
+                    skipWhiteSpaces();         
                 }
             default:
                 return;
@@ -227,6 +233,7 @@ static Token number() {
 
 static Token string() {
     while (peek() != '"' && !isAtEnd()){
+        if (peek() == '\\' && peekNext() == '"') advance();
         advance();
     } 
     advance();
@@ -262,7 +269,6 @@ static Token makeIdentifier() {
         case 'w': 
             if (scanner.start[1] == 'i') return checkKeyWord(2, 2, "th", TOKEN_WITH);
             else if (scanner.start[1] == 'h') return checkKeyWord(2, 3, "ile", TOKEN_WHILE);
-            else if (scanner.start[1] == 'r') return checkKeyWord(2, 3, "ite", TOKEN_WRITE);
         case 't': return checkKeyWord(1, 3, "rue", TOKEN_TRUE);
     }
 
@@ -301,6 +307,7 @@ static Token scanToken() {
         case '.': return makeFromType(TOKEN_DOT);
         case ':': return makeFromType(TOKEN_COLON);
         case '\n': return makeFromType(TOKEN_EOL);
+        case '?': return makeFromType(TOKEN_QUESTION);
         case '!':
             return match('=')? makeFromType(TOKEN_BANG_EQUAL):makeFromType(TOKEN_BANG);
         case '=':
@@ -311,8 +318,8 @@ static Token scanToken() {
             return match('=')? makeFromType(TOKEN_GREATER_EQUAL) : makeFromType(TOKEN_GREATER);
         case '"':
             return string();
-        default:
-            exit(1);
+        // default:
+        //     exit(1);
     }
 
 }
