@@ -10,7 +10,7 @@
 /* *********************************************** */
 
 static void resize_table(symtable *table);
-static symbol *create_symbol(char *key, char* value);
+static symbol *create_symbol(char *key, void* value);
 static symbol **init_pairs(int size);
 static int find_bucket_by_key(symtable *table, char *key);
 static int find_addable_bucket(symtable *table, char *key);
@@ -29,11 +29,12 @@ static int is_prime(int n);
 /*
     Creates new symbol table, sets size of symbol table to INITIAL_SIZE, count to zero. If memory wasn't allocated returns NULL.    
 */
-symtable* symtable_create_table(){
+symtable* symtable_create_table(TableType type){
     symtable *newTable = malloc(sizeof(symtable));
     if(newTable == NULL){
         exit(99);
     }
+    newTable->type = type;
     newTable->count = 0;
     newTable->size = INITIAL_SIZE;
     newTable->pairs = init_pairs(INITIAL_SIZE);
@@ -61,14 +62,13 @@ void symtable_delete_table(symtable* table) {
     Increases size, if needed.
     Increments count by one if operation succeeded.
 */
-void symtable_insert_pair(symtable *table, char *key, char *value){
+static void symtable_insert_pair(symtable *table, char *key, void *value){
     if(table->count > (table->size * LOAD_FACTOR)){
         resize_table(table);
     }
     int bucketToAdd = find_bucket_by_key(table, key);
+    //if key is already in the table, do nothing
     if(bucketToAdd != -1){
-        free(table->pairs[bucketToAdd]->value);
-        table->pairs[bucketToAdd]->value = copy_string(value);
         return;
     }
     bucketToAdd = find_addable_bucket(table, key);
@@ -78,12 +78,26 @@ void symtable_insert_pair(symtable *table, char *key, char *value){
     table->pairs[bucketToAdd] = create_symbol(key, value);
     table->count++;
 }
+
+void symtable_insert_variable(symtable* table, char* key, bool isConst, ValueType type){
+    varInfo *info = malloc(sizeof(varInfo));
+    info->type = type;
+    info->isConst = isConst;
+    symtable_insert_pair(table, key, info);
+}
+
+void symtable_insert_function(symtable* table, char* key, ValueType returnType, int numOfParams){
+    funcInfo *info = malloc(sizeof(funcInfo));
+    info->returnType = returnType;
+    info->numOfParams = numOfParams;
+    symtable_insert_pair(table, key, info);
+}
 /*
  * Returns:
  * Pointer to allocated block, which contains value of pair if found
  * NULL if pair wasn't found
  */
-char *symtable_get_pair(symtable *table, char *key){
+void *symtable_get_pair(symtable *table, char *key){
     int bucketToFind = find_bucket_by_key(table, key);
     if(bucketToFind == -1) return NULL;
     return table->pairs[bucketToFind]->value;
@@ -139,10 +153,10 @@ static symbol **init_pairs(int size){
     return new_pairs;
 }
 
-static symbol *create_symbol(char *key, char* value){
+static symbol *create_symbol(char *key, void* value){
     symbol *newPair = malloc(sizeof(symbol));
     newPair->key = copy_string(key);
-    newPair->value = copy_string(value);
+    newPair->value = value;
     return newPair;
 }
 

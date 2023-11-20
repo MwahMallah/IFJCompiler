@@ -21,45 +21,38 @@
 typedef enum{
     FUNCTION_TABLE,
     VARIABLE_TABLE
-} tableType;
+} TableType;
 
 // structure that represents every symbol in table
 typedef struct {  
     char* key;
-    char* value;
+    void* value;
 } symbol;
 
 
 //symbol table itself, represented by hash table with Open addressing
 typedef struct {
-    tableType type;
+    TableType type;
     int size;
     int count;
     symbol** pairs;
 } symtable;
 
-
-typedef enum type{
-    STRING_TYPE,
-    INT_TYPE,
-    DOUBLE_TYPE,
-    VOID_TYPE
-} dataType;
-
-typedef union data{
-    int intData;
-    double doubleData;
-    char *stringData;
-} variableData;
+//todo belongs to?
+typedef enum{
+    STRING,
+    INTEGER,
+    FLOAT,
+    NONE_TYPE
+} ValueType;
 
 typedef struct variableInfo{
     bool isConst;
-    dataType type;
-    variableData value;
+    ValueType type;
 } varInfo;
 
 typedef struct functionInfo{
-    dataType returnType;
+    ValueType returnType;
     int numOfParams;
 } funcInfo;
 
@@ -67,10 +60,11 @@ typedef struct functionInfo{
     Library API
 */
 
-symtable* symtable_create_table(tableType type); //creates new symbol table
+symtable* symtable_create_table(TableType type); //creates new symbol table
 void symtable_delete_table(symtable* table); //deletes table itself
-void symtable_insert_pair(symtable* table, char* key, char* value);
-char* symtable_get_pair(symtable* table, char* key); //searches for  value by a given key
+void symtable_insert_variable(symtable* table, char* key, bool isConst, ValueType type);
+void symtable_insert_function(symtable* table, char* key, ValueType returnType, int numOfParams);
+void *symtable_get_pair(symtable* table, char* key); //searches for  value by a given key
 void symtable_delete_pair(symtable* table, char* key); //deletes entry with a given key
 
 /**/
