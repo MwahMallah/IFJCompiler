@@ -18,6 +18,11 @@
 #define PROBING_INCREMENT 7
 #define LOAD_FACTOR 0.75
 
+typedef enum{
+    FUNCTION_TABLE,
+    VARIABLE_TABLE
+} tableType;
+
 // structure that represents every symbol in table
 typedef struct {  
     char* key;
@@ -26,7 +31,8 @@ typedef struct {
 
 
 //symbol table itself, represented by hash table with Open addressing
-typedef struct { 
+typedef struct {
+    tableType type;
     int size;
     int count;
     symbol** pairs;
@@ -63,7 +69,7 @@ typedef struct functionInfo{
     Library API
 */
 
-symtable* symtable_create_table(); //creates new symbol table
+symtable* symtable_create_table(tableType type); //creates new symbol table
 void symtable_delete_table(symtable* table); //deletes table itself
 void symtable_insert_pair(symtable* table, char* key, char* value);
 char* symtable_get_pair(symtable* table, char* key); //searches for  value by a given key
