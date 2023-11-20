@@ -55,13 +55,11 @@ typedef union data{
 typedef struct variableInfo{
     bool isConst;
     dataType type;
-    char *name;
     variableData value;
 } varInfo;
 
 typedef struct functionInfo{
     dataType returnType;
-    char *name;
     int numOfParams;
 } funcInfo;
 
