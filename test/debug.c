@@ -85,6 +85,9 @@ char* getType(TokenType type) {
         case TOKEN_FLOAT:
                     string = "TOKEN_FLOAT";
                     break;
+        case TOKEN_QUESTION:
+                    string = "TOKEN_QUESTION";
+                    break;
         case TOKEN_ELSE:
                     string = "TOKEN_ELSE";
                     break;

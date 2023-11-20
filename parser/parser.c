@@ -9,6 +9,7 @@ typedef struct
     Token* current;
 } Analyzer;
 
+
 //global instance of parser
 static Analyzer parser;
 static TokenList* list;
@@ -48,11 +49,35 @@ static void initParsing(TokenList* userList, symtable* userTable) {
     table = userTable;
 }
 
+static void variableDeclaration() {
+    Token newVar = consume(TOKEN_IDENTIFIER, 2);
+    if (match(TOKEN_COLON)) {
+
+    }
+
+    //symtable.addEntry(newVar, type)
+}
+
+static void funcDeclaration() {
+
+
+    //symtable.addFunc()
+}
+
+static void statement() {
+    if (match(TOKEN_WHILE)) {
+        whileStmt();
+    }
+}
+
 static void declaration() {
     if (match(TOKEN_VAR) || match(TOKEN_LET)) {
-
+        variableDeclaration();
+    } else if (match(TOKEN_FUNC)) {
+        funcDeclaration();
     } else if (match(TOKEN_EOL)) {
     } else {
+        statement();
     }
 }
 
@@ -60,7 +85,6 @@ void parse(TokenList* list, symtable* table) {
     initParsing(list, table);
 
     while (!match(TOKEN_EOF)) {
-        if (match(TOKEN_FUNC)) funcDecl();
-        else declaration();   
+        declaration();   
     }
 }
