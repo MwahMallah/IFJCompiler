@@ -12,6 +12,8 @@
     our table of symbols will store strings as values for now, it will be changed to something more sophisticated like token structure or expression
 */
 
+#include <stdbool.h>
+
 #define INITIAL_SIZE 53
 #define PROBING_INCREMENT 7
 #define LOAD_FACTOR 0.75
@@ -30,6 +32,32 @@ typedef struct {
     symbol** pairs;
 } symtable;
 
+
+typedef enum type{
+    STRING_TYPE,
+    INT_TYPE,
+    DOUBLE_TYPE,
+    VOID_TYPE
+} dataType;
+
+typedef union data{
+    int intData;
+    double doubleData;
+    char *stringData;
+} variableData;
+
+typedef struct variableInfo{
+    bool isConst;
+    dataType type;
+    char *name;
+    variableData value;
+} varInfo;
+
+typedef struct functionInfo{
+    dataType returnType;
+    char *name;
+    int numOfParams;
+} funcInfo;
 
 /*
     Library API
