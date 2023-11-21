@@ -307,7 +307,8 @@ static Token scanToken() {
         case '.': return makeFromType(TOKEN_DOT);
         case ':': return makeFromType(TOKEN_COLON);
         case '\n': return makeFromType(TOKEN_EOL);
-        case '?': return makeFromType(TOKEN_QUESTION);
+        case '?': 
+            return match('?')? makeFromType(TOKEN_DOUBLE_QUESTIONS): makeFromType(TOKEN_QUESTION);
         case '!':
             return match('=')? makeFromType(TOKEN_BANG_EQUAL):makeFromType(TOKEN_BANG);
         case '=':

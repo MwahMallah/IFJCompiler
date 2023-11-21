@@ -12,7 +12,7 @@ int main(void) {
     char* program = readInput();
     TokenList* list = scanTokens(program);
     free(program);
-    symtable* table = symtable_create_table();
+    // symtable* table = symtable_create_table();
 
     // for (int i = 0; i < list->size; i++) {
     //     printf("%3d, ", i + 1);

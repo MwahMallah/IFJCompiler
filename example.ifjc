@@ -5,89 +5,32 @@ DEFVAR GF@tmp_op2
 DEFVAR GF@tmp_op3
 JUMP $$main
 LABEL $$main
-DEFVAR GF@str1
-PUSHS string@Toto\032je\032nejaky\032text\032v\032programu\032jazyka\032IFJ23
-POPS GF@str1
-DEFVAR GF@str2
-PUSHS string@,\032ktery\032jeste\032trochu\032obohatime
-POPS GF@str2
+DEFVAR GF@b
 CREATEFRAME
 DEFVAR TF@%1
-PUSHS GF@str1
+PUSHS string@Hello
 POPS TF@%1
 DEFVAR TF@%2
-PUSHS string@\010
+PUSHS int@0
 POPS TF@%2
 DEFVAR TF@%3
-PUSHS GF@str2
+PUSHS int@2
 POPS TF@%3
-DEFVAR TF@%4
-PUSHS string@\010
-POPS TF@%4
-WRITE TF@%1
-WRITE TF@%2
-WRITE TF@%3
-WRITE TF@%4
-DEFVAR GF@i
-CREATEFRAME
-DEFVAR TF@%1
-PUSHS GF@str1
-POPS TF@%1
-STRLEN GF@tmp_op1 TF@%1
+PUSHS string@
+POPS GF@tmp_op1
+LABEL %substring$0
+PUSHS TF@%2
+PUSHS TF@%3
+JUMPIFEQS %substringEnd$0
+GETCHAR GF@tmp_op2 TF@%1 TF@%2
+CONCAT GF@tmp_op1 GF@tmp_op1 GF@tmp_op2
+ADD TF@%2 TF@%2 int@1
+JUMP %substring$0
+LABEL %substringEnd$0
 PUSHS GF@tmp_op1
-POPS GF@i
+POPS GF@b
 CREATEFRAME
 DEFVAR TF@%1
-PUSHS string@Pozice\032retezce\032\034text\034\032v\032str2:\032
-POPS TF@%1
-DEFVAR TF@%2
-PUSHS GF@i
-POPS TF@%2
-DEFVAR TF@%3
-PUSHS string@\010
-POPS TF@%3
-WRITE TF@%1
-WRITE TF@%2
-WRITE TF@%3
-CREATEFRAME
-DEFVAR TF@%1
-PUSHS string@Zadejte\032serazenou\032posloupnost\032vsech\032malych\032pismen\032a-h,\032
+PUSHS GF@b
 POPS TF@%1
 WRITE TF@%1
-DEFVAR GF@newInput
-CREATEFRAME
-READ GF@tmp_op1 string
-PUSHS GF@tmp_op1
-POPS GF@newInput
-CREATEFRAME
-PUSHFRAME
-PUSHS nil@nil
-PUSHS GF@newInput
-JUMPIFEQS elseJump0
-PUSHS GF@newInput
-POPS GF@str1
-LABEL whileStart1
-PUSHS GF@str1
-PUSHS string@abcdefgh
-EQS
-NOTS
-PUSHS bool@false
-JUMPIFEQS whileEnd1
-CREATEFRAME
-DEFVAR TF@%1
-PUSHS string@Spatne\032zadana\032posloupnost,\032zkuste\032znovu:\010
-POPS TF@%1
-WRITE TF@%1
-DEFVAR LF@tmp$2
-CREATEFRAME
-READ GF@tmp_op1 string
-PUSHS GF@tmp_op1
-POPS LF@tmp$2
-PUSHS LF@tmp$2
-POPS GF@str1
-JUMP whileStart1
-LABEL whileEnd1
-JUMP thenJump0
-LABEL elseJump0
-LABEL thenJump0
-POPFRAME

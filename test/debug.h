@@ -7,6 +7,15 @@
 #define __debug_h
 #include "../data_structures/tokens.h"
 
+
+typedef enum {
+    STRING,
+    INTEGER,
+    FLOAT,
+    NONE_TYPE
+} ValueType;
+
 void printToken(Token);
+void printType(ValueType);
 
 #endif

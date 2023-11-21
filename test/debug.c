@@ -6,6 +6,27 @@
 #include <stdio.h>
 #include "debug.h"
 
+void printType(ValueType type) {
+    switch (type)
+    {
+        case INTEGER:
+            printf("INTEGER\n");
+            break;
+        case STRING:
+            printf("STRING\n");
+            break;
+        case FLOAT:
+            printf("FLOAT\n");
+            break;
+        case NONE_TYPE:
+            printf("NONE_TYPE\n");
+            break;  
+        default:
+            printf("UNKNOWN TYPE\n");
+            break;
+    }
+}
+
 char* getType(TokenType type) {
     char* string;
     switch (type)
@@ -87,6 +108,9 @@ char* getType(TokenType type) {
                     break;
         case TOKEN_QUESTION:
                     string = "TOKEN_QUESTION";
+                    break;
+        case TOKEN_DOUBLE_QUESTIONS:
+                    string = "TOKEN_DOUBLE_QUESTIONS";
                     break;
         case TOKEN_ELSE:
                     string = "TOKEN_ELSE";
