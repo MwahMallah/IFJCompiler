@@ -9,7 +9,7 @@
 #include "data_structures/symtable.h"
 
 int main(void) {
-    char* program = readInput(7);
+    char* program = readInput();
     TokenList* list = scanTokens(program);
     free(program);
     symtable* varTable = symtable_create_table(VARIABLE_TABLE);
