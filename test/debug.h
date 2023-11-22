@@ -8,14 +8,14 @@
 #include "../data_structures/tokens.h"
 
 
-typedef enum {
-    STRING,
-    INTEGER,
-    FLOAT,
-    NONE_TYPE
-} ValueType;
+//typedef enum {
+//    STRING,
+//    INTEGER,
+//    FLOAT,
+//    NONE_TYPE
+//} ValueType;
 
 void printToken(Token);
-void printType(ValueType);
+//  void printType(ValueType);
 
 #endif

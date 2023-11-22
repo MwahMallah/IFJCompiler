@@ -6,6 +6,6 @@
 #include "../data_structures/symtable.h"
 
 //parses entire program
-void parse(TokenList* list, symtable* symTable);
+void parse(TokenList *list, symtable *variableTable, symtable *functionTable);
 
 #endif

@@ -3,6 +3,7 @@
 #include "compiler.h"
 #include "../test/debug.h"
 #include "../data_structures/str.h"
+#include "../data_structures/valueTypes.h"
 
 // typedef enum {
 //     STRING,

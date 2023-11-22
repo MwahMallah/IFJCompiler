@@ -13,6 +13,7 @@
 */
 
 #include <stdbool.h>
+#include "valueTypes.h"
 
 #define INITIAL_SIZE 53
 #define PROBING_INCREMENT 7
@@ -38,13 +39,6 @@ typedef struct {
     symbol** pairs;
 } symtable;
 
-//todo belongs to?
-typedef enum{
-    STRING,
-    INTEGER,
-    FLOAT,
-    NONE_TYPE
-} ValueType;
 
 typedef struct variableInfo{
     bool isConst;
