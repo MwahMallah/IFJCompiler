@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include "debug.h"
+#include "../data_structures/valueTypes.h"
 
 // void printType(ValueType type) {
 //     switch (type)

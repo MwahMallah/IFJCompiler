@@ -3,6 +3,7 @@
 #include "symtable.h"
 #include "stdint.h"
 #include "str.h"
+#include "../test/debug.h"
 
 /********************symtable.C*********************/
 /*  Předmět: IFJ - FIT VUT v Brně                  */

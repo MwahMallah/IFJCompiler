@@ -2,11 +2,13 @@
 #include <stdbool.h>
 #include "../data_structures/tokenTypes.h"
 #include "parser.h"
+#include "../data_structures/valueTypes.h"
 
 static int currentToken = 0;
 static bool isEOF = false;
 static TokenList *tokenList;
-static symtable *table;
+static symtable *varTable;
+static symtable *funcTable;
 
 //typedef struct
 //{
@@ -58,56 +60,98 @@ static symtable *table;
 //    }
 //}
 
-static bool isCurrentType(TokenType type){
+static bool isCurrent(TokenType type){
     return tokenList->tokens[currentToken].type == type;
 }
 
-static bool isCurrentTypeIncrease(TokenType type){
-    if(isCurrentType(type)){
+static void isCurrentExit(TokenType type, int exitCode){
+    if(isCurrent(type)) return;
+    exit(exitCode);
+}
+
+static bool isCurrentIncrease(TokenType type){
+    if(isCurrent(type)){
         currentToken++;
         return true;
     }
     return false;
 }
 
+static void isCurrentIncreaseExit(TokenType type, int exitCode){
+    if(isCurrentIncrease(type)) return;
+    exit(exitCode);
+}
 
-static void varDeclaration(){
-    if(isCurrentType(TOKEN_IDENTIFIER)){
-        //todo check if isn't in the table
-        //todo add to the table
-        currentToken++;
-        if(isCurrentTypeIncrease(TOKEN_COLON)){
-            switch (tokenList->tokens[currentToken].type) {
-                case TOKEN_TYPE_STRING:
-                    //todo add type to the table
-                    break;
-                case TOKEN_TYPE_INT:
-                    //todo add type to the table
-                    break;
-                case TOKEN_TYPE_DOUBLE:
-                    //todo add type to the table
-                    break;
-                default:
-                    exit(2);
-            }
+
+
+
+
+
+static void variableDeclaration(){
+    //considering that current type is let or var
+    ValueType varType = NONE_TYPE;
+    //check let or var
+    bool isConst = isCurrentIncrease(TOKEN_LET);
+    //is identifier
+    isCurrentExit(TOKEN_IDENTIFIER, 2);
+    char *varName = tokenList->tokens[currentToken].lexeme;
+    varInfo *info = symtable_get_pair(varTable, varName);
+    //check if is not already declared
+    if(info){
+        exit(3);
+    }
+    currentToken++;
+    //type declaration
+    if(isCurrentIncrease(TOKEN_COLON)){
+        switch (tokenList->tokens[currentToken].type) {
+            case TOKEN_TYPE_STRING:
+                varType = STRING;
+                break;
+            case TOKEN_TYPE_INT:
+                varType = INTEGER;
+                break;
+            case TOKEN_TYPE_DOUBLE:
+                varType = FLOAT;
+                break;
+            default:
+                exit(2);
         }
-        if(!isCurrentTypeIncrease(TOKEN_EQUAL))
-    } else{
+        isCurrentIncrease(TOKEN_QUESTION);
+        if(isCurrentIncrease(TOKEN_EOL)){
+            return;
+        }
+    }
+    //equal sign
+    isCurrentIncreaseExit(TOKEN_EQUAL, 2);
+    //todo expression
+    //todo add to the table
 
+}
+
+static void assignment(){
+    //considering that current type is identifier
+    varInfo *info = symtable_get_pair(varTable, tokenList->tokens[currentToken].lexeme);
+    if(!info){
+        exit(5);
+    }
+    if(info->isConst){
+        exit(TOKEN_)
     }
 }
 
 static void parseLine(){
-    if(isCurrentType(TOKEN_VAR)){
-        currentToken++;
-        varDeclaration();
+    if(isCurrent(TOKEN_VAR) || isCurrent(TOKEN_LET)){
+        variableDeclaration();
+    } else if(isCurrent(TOKEN_IDENTIFIER)){
+        assignment();
     }
 }
 
-void parse(TokenList *list, symtable *symTable) {
+void parse(TokenList *list, symtable *variableTable, symtable *functionTable) {
     tokenList = list;
-    table = symTable;
-    while (!isCurrentType(TOKEN_EOF)) {
-
+    varTable = variableTable;
+    funcTable = functionTable;
+    while (!isCurrent(TOKEN_EOF)) {
+        parseLine();
     }
 }

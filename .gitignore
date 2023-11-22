@@ -4,3 +4,4 @@ symtable_test
 parser_test
 .idea
 *.dll
+main

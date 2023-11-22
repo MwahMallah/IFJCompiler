@@ -2,13 +2,14 @@
 #include <stdbool.h>
 #include "compiler.h"
 #include "../data_structures/str.h"
+#include "../data_structures/valueTypes.h"
 
-typedef enum {
-    STRING,
-    INTEGER,
-    FLOAT,
-    NONE_TYPE
-} ValueType;
+// typedef enum {
+//     STRING,
+//     INTEGER,
+//     FLOAT,
+//     NONE_TYPE
+// } ValueType;
 
 //enum that stores precedence of various operations
 //greater value of enum type itself means greater precedence
