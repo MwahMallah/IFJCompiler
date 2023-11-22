@@ -12,8 +12,8 @@ int main(void) {
     char* program = readInput(4);
     TokenList* list = scanTokens(program);
     free(program);
-    //symtable* varTable = symtable_create_table(VARIABLE_TABLE);
-    //symtable* funcTable = symtable_create_table(FUNCTION_TABLE);
+    symtable* varTable = symtable_create_table(VARIABLE_TABLE);
+    symtable* funcTable = symtable_create_table(FUNCTION_TABLE);
 
     // for (int i = 0; i < list->size; i++) {
     //     printf("%3d, ", i + 1);
