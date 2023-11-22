@@ -4,6 +4,9 @@ TEST_SRC=test/unity.c
 all: main.c scanner/scanner.c data_structures/tokens.c data_structures/str.c test/debug.c codeGenerator/compiler.c
 	$(CC) -o main $^
 
+old_rus: main.c scanner/oldRusScanner.c data_structures/tokens.c data_structures/str.c test/debug.c codeGenerator/compiler.c
+	$(CC) -o old_rus_script $^
+	
 symtable_test: test/symtable_test.c data_structures/symtable.c data_structures/str.c
 	$(CC) -o $@ $^ $(TEST_SRC) -I. -lm
 

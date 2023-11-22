@@ -1,15 +1,14 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "compiler.h"
-#include "../test/debug.h"
 #include "../data_structures/str.h"
 
-// typedef enum {
-//     STRING,
-//     INTEGER,
-//     FLOAT,
-//     NONE_TYPE
-// } ValueType;
+typedef enum {
+    STRING,
+    INTEGER,
+    FLOAT,
+    NONE_TYPE
+} ValueType;
 
 //enum that stores precedence of various operations
 //greater value of enum type itself means greater precedence
@@ -433,16 +432,16 @@ static ValueType call(Token* funcName) {
 
         returnType = nativeFunc(funcName->lexeme, argumentNum);
     } else {
+        printf("PUSHFRAME\n");
 
         if (!check(TOKEN_RIGHT_PAREN)) {
             do {
-                printf("DEFVAR TF@%%%d\n", argumentNum);
+                printf("DEFVAR LF@%%%d\n", argumentNum);
                 expression();
-                printf("POPS TF@%%%d\n", argumentNum++);
+                printf("POPS LF@%%%d\n", argumentNum++);
             } while (match(TOKEN_COMMA));
         }
 
-        printf("PUSHFRAME\n");
         printf("CALL $%s\n", funcName->lexeme);
         printf("PUSHS TF@%%retval\n");
     }

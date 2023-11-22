@@ -1,3 +1,7 @@
-var b = substring("Hello", 0, 2)
+func add(_ a : Int, _ b : Int) -> Int {
+    return a + b
+}
 
-write(b)
+
+
+write(add(add(1, 2), add(3, 4)))
