@@ -12,14 +12,15 @@ int main(void) {
     char* program = readInput();
     TokenList* list = scanTokens(program);
     free(program);
-    // symtable* table = symtable_create_table();
+    //symtable* varTable = symtable_create_table(VARIABLE_TABLE);
+    //symtable* funcTable = symtable_create_table(FUNCTION_TABLE);
 
     // for (int i = 0; i < list->size; i++) {
     //     printf("%3d, ", i + 1);
     //     printToken(list->tokens[i]);
     // }
 
-    // parse();
+    //parse(list, varTable, funcTable);
     compile(list);
 
     token_delete_tokens(list);
