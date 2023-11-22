@@ -98,3 +98,4 @@ Token makeToken(TokenType type, char* lexeme) {
 
     return tok;
 }
+

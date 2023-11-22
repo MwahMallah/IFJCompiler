@@ -3,6 +3,9 @@
 /*  implementace: Volkov Ilya (xvolko02)       */
 /* *********************************************** */
 
+#ifndef __value_types_h
+#define __value_types_h
+
 //all data types of IFJ language
 typedef enum{
     STRING,
@@ -10,3 +13,5 @@ typedef enum{
     FLOAT,
     NONE_TYPE
 } ValueType;
+
+#endif

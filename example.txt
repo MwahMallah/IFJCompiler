@@ -1,3 +1,0 @@
-var b = substring("Hello", 0, 2)
-
-write(b)
