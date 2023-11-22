@@ -1,6 +1,6 @@
 /********************tokenTypes.h*******************/
 /*  Předmět: IFJ - FIT VUT v Brně                  */
-/*  implementace: Volkov Ilya (xvolko02)       */
+/*  implementace: Volkov Ilya (xvolko02)           */
 /* *********************************************** */
 
 #ifndef __value_types_h

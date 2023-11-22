@@ -22,5 +22,4 @@ typedef enum {
 //Klíčová slova: Double, else, func, if, Int, let, nil, return, String,
 //var, while
 
-
 #endif
