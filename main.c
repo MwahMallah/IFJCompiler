@@ -9,19 +9,19 @@
 #include "data_structures/symtable.h"
 
 int main(void) {
-    char* program = readInput();
+    char* program = readInput(1);
     TokenList* list = scanTokens(program);
     free(program);
-    //symtable* varTable = symtable_create_table(VARIABLE_TABLE);
-    //symtable* funcTable = symtable_create_table(FUNCTION_TABLE);
+    symtable* varTable = symtable_create_table(VARIABLE_TABLE);
+    symtable* funcTable = symtable_create_table(FUNCTION_TABLE);
 
     // for (int i = 0; i < list->size; i++) {
     //     printf("%3d, ", i + 1);
     //     printToken(list->tokens[i]);
     // }
 
-    //parse(list, varTable, funcTable);
-    compile(list);
+    parse(list, varTable, funcTable);
+    //compile(list);
 
     token_delete_tokens(list);
 }
