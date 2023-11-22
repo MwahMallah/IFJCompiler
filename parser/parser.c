@@ -2,7 +2,6 @@
 #include <stdbool.h>
 #include "../data_structures/tokenTypes.h"
 #include "parser.h"
-#include "../data_structures/valueTypes.h"
 
 static int currentToken = 0;
 static bool isEOF = false;
@@ -10,6 +9,8 @@ static TokenList *tokenList;
 static symtable *varTable;
 static symtable *funcTable;
 
+
+static void parseLine();
 //typedef struct
 //{
 //    Token* previous;
@@ -83,7 +84,7 @@ static void isCurrentIncreaseExit(TokenType type, int exitCode){
 }
 
 
-
+static void expression()
 
 
 
@@ -135,15 +136,46 @@ static void assignment(){
         exit(5);
     }
     if(info->isConst){
-        exit(TOKEN_)
+        exit(9);
     }
+    currentToken++;
+    isCurrentIncreaseExit(TOKEN_EQUAL, 2);
+    //todo exp
+}
+
+static void parseBlock(){
+    while (!isCurrentIncrease(TOKEN_RIGHT_BRACE)){
+        parseLine();
+    }
+}
+
+static void parseIf(){
+    //todo exp
+    isCurrentIncrease(TOKEN_EOL);//todo eol???
+    isCurrentIncreaseExit(TOKEN_LEFT_BRACE, 2);
+    isCurrentIncreaseExit(TOKEN_EOL, 2);//todo not sure
+    parseBlock();
+    isCurrentIncrease(TOKEN_EOL);//todo eol???
+    if(!isCurrentIncrease(TOKEN_ELSE)){
+        return;
+    }
+    isCurrentIncrease(TOKEN_EOL);//todo eol???
+    isCurrentIncreaseExit(TOKEN_LEFT_BRACE, 2);
+    parseBlock();
+    isCurrentIncrease(TOKEN_EOL);
 }
 
 static void parseLine(){
     if(isCurrent(TOKEN_VAR) || isCurrent(TOKEN_LET)){
         variableDeclaration();
     } else if(isCurrent(TOKEN_IDENTIFIER)){
-        assignment();
+        if(tokenList->tokens[currentToken+1].type == TOKEN_LEFT_PAREN){
+            //funcCall
+        } else{
+            assignment();
+        }
+    } else if(isCurrentIncrease(TOKEN_IF)){
+        parseIf();
     }
 }
 
