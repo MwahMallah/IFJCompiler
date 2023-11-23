@@ -11,6 +11,7 @@ typedef enum{
     STRING,
     INTEGER,
     FLOAT,
+    BOOLEAN,
     NONE_TYPE
 } ValueType;
 

@@ -267,8 +267,7 @@ static Token makeIdentifier() {
         case 'i': return checkKeyWord(1, 1, "f", TOKEN_IF);
         case 'e': return checkKeyWord(1, 3, "lse", TOKEN_ELSE);
         case 'w': 
-            if (scanner.start[1] == 'i') return checkKeyWord(2, 2, "th", TOKEN_WITH);
-            else if (scanner.start[1] == 'h') return checkKeyWord(2, 3, "ile", TOKEN_WHILE);
+            if (scanner.start[1] == 'h') return checkKeyWord(2, 3, "ile", TOKEN_WHILE);
         case 't': return checkKeyWord(1, 3, "rue", TOKEN_TRUE);
     }
 

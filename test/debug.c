@@ -18,6 +18,9 @@ void printType(ValueType type) {
         case FLOAT:
             printf("FLOAT\n");
             break;
+        case BOOLEAN:
+            printf("BOOLEAN\n");
+            break;
         case NONE_TYPE:
             printf("NONE_TYPE\n");
             break;  
@@ -150,9 +153,6 @@ char* getType(TokenType type) {
                     break;
         case TOKEN_WHILE:
                     string = "TOKEN_WHILE";
-                    break;
-        case TOKEN_WITH:
-                    string = "TOKEN_WITH";
                     break;
         case TOKEN_WRITE:
             string = "TOKEN_WRITE";

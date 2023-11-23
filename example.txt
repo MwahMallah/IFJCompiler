@@ -1,3 +1,10 @@
-var a = 2.0
-var a = a + 1
-write(a)
+func minus(with a : Int, by b : Int) -> Int {
+    return a - b
+}
+
+func add(with a : Int, by b : Int) -> Int {
+    return a + b
+}
+
+write(add(by: 3, with: 2), "\n")
+write(minus(with: 3, by: 2), "\n")
