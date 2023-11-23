@@ -33,7 +33,7 @@ static int is_prime(int n);
 symtable* symtable_create_table(TableType type){
     symtable *newTable = malloc(sizeof(symtable));
     if(!newTable){
-        exit(99);//todo
+        exit(99);
     }
     newTable->type = type;
     newTable->count = 0;
@@ -82,20 +82,21 @@ static void symtable_insert_pair(symtable *table, char *key, void *value){
     table->count++;
 }
 
-void symtable_insert_variable(symtable* table, char* key, bool isConst, ValueType type){
+void symtable_insert_variable(symtable* table, char* key, bool isConst, bool isInitialized, ValueType type){
     varInfo *info = malloc(sizeof(varInfo));
     if(!info){
-        exit(99);//todo
+        exit(99);
     }
     info->type = type;
     info->isConst = isConst;
+    info->isInitialized = isInitialized;
     symtable_insert_pair(table, key, info);
 }
 
 void symtable_insert_function(symtable* table, char* key, ValueType returnType, int numOfParams, char *names[256]){
     funcInfo *info = malloc(sizeof(funcInfo));
     if(!info){
-        exit(99);//todo
+        exit(99);
     }
     info->returnType = returnType;
     info->numOfParams = numOfParams;
@@ -156,7 +157,7 @@ static symbol **init_pairs(int size){
     symbol **new_pairs = malloc(sizeof(symbol*) * size);
     //checking if memory was allocated successfully
     if(!new_pairs){
-        exit(99);//todo
+        exit(99);
     }
     for(int i = 0; i < size; ++i){
         new_pairs[i] = NULL;
@@ -167,7 +168,7 @@ static symbol **init_pairs(int size){
 static symbol *create_symbol(char *key, void* value){
     symbol *newPair = malloc(sizeof(symbol));
     if(!newPair){
-        exit(99);//todo
+        exit(99);
     }
     newPair->key = copy_string(key);
     newPair->value = value;

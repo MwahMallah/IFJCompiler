@@ -42,6 +42,7 @@ typedef struct {
 
 typedef struct variableInfo{
     bool isConst;
+    bool isInitialized;
     ValueType type;
 } varInfo;
 
@@ -57,7 +58,7 @@ typedef struct functionInfo{
 
 symtable* symtable_create_table(TableType type); //creates new symbol table
 void symtable_delete_table(symtable* table); //deletes table itself
-void symtable_insert_variable(symtable* table, char* key, bool isConst, ValueType type);
+void symtable_insert_variable(symtable* table, char* key, bool isConst, bool isInitialized, ValueType type);
 void symtable_insert_function(symtable* table, char* key, ValueType returnType, int numOfParams, char *names[256]);
 void *symtable_get_pair(symtable* table, char* key); //searches for  value by a given key
 void symtable_delete_pair(symtable* table, char* key); //deletes entry with a given key
