@@ -32,7 +32,7 @@ static int is_prime(int n);
 */
 symtable* symtable_create_table(TableType type){
     symtable *newTable = malloc(sizeof(symtable));
-    if(newTable == NULL){
+    if(!newTable){
         exit(99);
     }
     newTable->type = type;
@@ -68,8 +68,10 @@ static void symtable_insert_pair(symtable *table, char *key, void *value){
         resize_table(table);
     }
     int bucketToAdd = find_bucket_by_key(table, key);
-    //if key is already in the table, do nothing
+    //if key is already in the table, update
     if(bucketToAdd != -1){
+        symtable_delete_pair(table, key);
+        symtable_insert_pair(table, key, value);
         return;
     }
     bucketToAdd = find_addable_bucket(table, key);
@@ -80,17 +82,27 @@ static void symtable_insert_pair(symtable *table, char *key, void *value){
     table->count++;
 }
 
-void symtable_insert_variable(symtable* table, char* key, bool isConst, ValueType type){
+void symtable_insert_variable(symtable* table, char* key, bool isConst, bool isInitialized, ValueType type){
     varInfo *info = malloc(sizeof(varInfo));
+    if(!info){
+        exit(99);
+    }
     info->type = type;
     info->isConst = isConst;
+    info->isInitialized = isInitialized;
     symtable_insert_pair(table, key, info);
 }
 
-void symtable_insert_function(symtable* table, char* key, ValueType returnType, int numOfParams){
+void symtable_insert_function(symtable* table, char* key, ValueType returnType, int numOfParams, char *names[256]){
     funcInfo *info = malloc(sizeof(funcInfo));
+    if(!info){
+        exit(99);
+    }
     info->returnType = returnType;
     info->numOfParams = numOfParams;
+    for (int i = 0; i < numOfParams; ++i) {
+        info->paramNames[i] = names[i];
+    }
     symtable_insert_pair(table, key, info);
 }
 /*
@@ -135,7 +147,6 @@ static void resize_table(symtable *table){
     for (int i = 0; i < oldSize; ++i) {
         if(tempPairs[i] != NULL){
             free(tempPairs[i]->key);
-            free(tempPairs[i]->value);
             free(tempPairs[i]);
         }
     }
@@ -145,7 +156,7 @@ static void resize_table(symtable *table){
 static symbol **init_pairs(int size){
     symbol **new_pairs = malloc(sizeof(symbol*) * size);
     //checking if memory was allocated successfully
-    if(new_pairs == NULL){
+    if(!new_pairs){
         exit(99);
     }
     for(int i = 0; i < size; ++i){
@@ -156,6 +167,9 @@ static symbol **init_pairs(int size){
 
 static symbol *create_symbol(char *key, void* value){
     symbol *newPair = malloc(sizeof(symbol));
+    if(!newPair){
+        exit(99);
+    }
     newPair->key = copy_string(key);
     newPair->value = value;
     return newPair;
