@@ -319,10 +319,9 @@ static Token scanToken() {
             return match('=')? makeFromType(TOKEN_GREATER_EQUAL) : makeFromType(TOKEN_GREATER);
         case '"':
             return string();
-        // default:
-        //     exit(1);
+        default:
+            return makeFromType(TOKEN_ERROR);
     }
-
 }
 
 //Scances for tokens from the entire content of a program and constructs a list of tokens.
@@ -335,6 +334,10 @@ TokenList* scanTokens(char* program) {
     while(!atEnd) {
         Token token = scanToken();   
         token_add(list, token);
+        if (token.type == TOKEN_ERROR){
+            token_delete_tokens(list);
+            return NULL;   
+        }
         if (token.type == TOKEN_EOF) atEnd = true;
     }
 

@@ -10,6 +10,7 @@
         "str.h": "c",
         "symtable.h": "c",
         "stdlib.h": "c",
-        "parser.h": "c"
+        "parser.h": "c",
+        "debug.h": "c"
     }
 }

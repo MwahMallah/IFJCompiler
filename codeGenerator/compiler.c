@@ -3,6 +3,8 @@
 #include "compiler.h"
 #include "../data_structures/str.h"
 #include "../data_structures/valueTypes.h"
+#include "../data_structures/symtable.h"
+#include "../test/debug.h"
 
 // typedef enum {
 //     STRING,
@@ -46,8 +48,9 @@ typedef struct
 typedef struct 
 {
     Token variable;
-    int depth;
     ValueType type;
+    bool isConst;
+    int depth;
 } Local;
 
 typedef struct 
@@ -60,18 +63,35 @@ typedef struct
 //global instance of parser
 static Parser parser;
 static TokenList* list;
+static symtable* varTable;
+static symtable* funcTable;
 static LocalList locals;
 static int jumpNumber;
 static int questionLabel;
 static int substringLabel;
 
 //pushes variable to list of local variables
-static void pushLocal(Token* variable, ValueType declaredType) {
+static void pushLocal(Token* variable, bool isConst, ValueType declaredType) {
     Local newLocal;
     newLocal.variable = *variable;
     newLocal.depth = locals.scopeDepth;
     newLocal.type = declaredType;
+    newLocal.isConst = isConst;
     locals.variables[++locals.localPos] = newLocal;
+}
+
+static bool localVarExistOnCurrentDepth(Token* variable) {
+    for (int i = locals.localPos; locals.variables[i].depth == locals.scopeDepth; i--) {
+        if (compare_strings(variable->lexeme, locals.variables[i].variable.lexeme) == 1) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool globalVarExist(Token* variable) {
+    varInfo* info = (varInfo*) symtable_get_pair(varTable, variable->lexeme);
+    return info != NULL;
 }
 
 //searches through local variables
@@ -93,7 +113,7 @@ static int getVarDepth(Token* variable) {
     return 0;
 }
 
-static ValueType getVarType(Token* variable) {
+static ValueType getLocalVarType(Token* variable) {
     for (int i = locals.localPos; i >= 0; i--) {
         if (compare_strings(variable->lexeme, locals.variables[i].variable.lexeme) == 1) {
             return locals.variables[i].type;
@@ -102,12 +122,27 @@ static ValueType getVarType(Token* variable) {
     return NONE_TYPE;
 }
 
-static bool variableIsType(Token* variable, ValueType type) {
+static bool varExist(Token* variable) {
     if (variableIsLocal(variable)) {
-        return getVarType(variable) == type;
+        return true;
+    } else {
+        varInfo* info = (varInfo*) symtable_get_pair(varTable, variable->lexeme);
+        return info != NULL;
     }
 }
 
+static ValueType variableType(Token* variable) {
+    if (variableIsLocal(variable)) {
+        return getLocalVarType(variable);
+    } else {
+        varInfo* info = (varInfo*) symtable_get_pair(varTable, variable->lexeme);
+        return info == NULL? NONE_TYPE : info->type;
+    }
+}
+
+static bool variableIsType(Token* variable, ValueType type) {
+    return variableType(variable) == type;
+}
 
 static bool isNative(char* funcName) {
     if (
@@ -131,7 +166,7 @@ static ValueType nativeFunc(char* funcName, int numArgs) {
     // printf("PUSHFRAME\n");
     if (compare_strings(funcName, "write") == 1) {
         for (int i = 1; i < numArgs; i++) {
-            printf("WRITE TF@%%%d\n", i);
+            printf("WRITE LF@%%%d\n", i);
         }
         return NONE_TYPE;
     } else if (compare_strings(funcName, "readInt") == 1) {
@@ -147,23 +182,23 @@ static ValueType nativeFunc(char* funcName, int numArgs) {
         printf("PUSHS GF@tmp_op1\n");
         return FLOAT;
     } else if (compare_strings(funcName, "Int2Double") == 1) {
-        printf("PUSHS TF@%%%d\n", 1);
+        printf("PUSHS LF@%%%d\n", 1);
         printf("INT2FLOATS\n");
         return FLOAT;
     } else if (compare_strings(funcName, "Double2Int")  == 1) {
-        printf("FLOAT2INT GF@tmp_op1 TF@%%%d\n", 1);
+        printf("FLOAT2INT GF@tmp_op1 LF@%%%d\n", 1);
         printf("PUSHS GF@tmp_op1\n");
         return INTEGER;
     } else if (compare_strings(funcName, "chr") == 1) {
-        printf("PUSHS TF@%%%d\n", 1);
+        printf("PUSHS LF@%%%d\n", 1);
         printf("INT2CHARS\n");
         return STRING;
     } else if (compare_strings(funcName, "length") == 1) {
-        printf("STRLEN GF@tmp_op1 TF@%%%d\n", 1);
+        printf("STRLEN GF@tmp_op1 LF@%%%d\n", 1);
         printf("PUSHS GF@tmp_op1\n");
         return INTEGER;
     } else if (compare_strings(funcName, "ord") == 1) {
-        printf("PUSHS TF@%%%d\n", 1);
+        printf("PUSHS LF@%%%d\n", 1);
         printf("PUSHS int@0\n");
         printf("STRI2INTS\n");
         return INTEGER;
@@ -171,12 +206,12 @@ static ValueType nativeFunc(char* funcName, int numArgs) {
         printf("PUSHS string@\n");
         printf("POPS GF@tmp_op1\n");
         printf("LABEL %%substring$%d\n", substringLabel);
-        printf("PUSHS TF@%%2\n");
-        printf("PUSHS TF@%%3\n");
+        printf("PUSHS LF@%%2\n");
+        printf("PUSHS LF@%%3\n");
         printf("JUMPIFEQS %%substringEnd$%d\n", substringLabel);
-        printf("GETCHAR GF@tmp_op2 TF@%%1 TF@%%2\n");  //tmp_op2 = string[i]
+        printf("GETCHAR GF@tmp_op2 LF@%%1 LF@%%2\n");  //tmp_op2 = string[i]
         printf("CONCAT GF@tmp_op1 GF@tmp_op1 GF@tmp_op2\n");
-        printf("ADD TF@%%2 TF@%%2 int@1\n");
+        printf("ADD LF@%%2 LF@%%2 int@1\n");
         printf("JUMP %%substring$%d\n", substringLabel);
         printf("LABEL %%substringEnd$%d\n", substringLabel++);
         printf("PUSHS GF@tmp_op1\n");
@@ -275,6 +310,7 @@ static ValueType floating(Token* name) {
     return FLOAT;
 }
 
+static void endCompilation();
 static ValueType expression();
 static void statement(bool isFirstFrame);
 static void declaration(bool isLocal, bool isFirstFrame);
@@ -303,12 +339,18 @@ static ValueType string(Token* name) {
 static ValueType variable(Token* name) {
     Token* var = parser.previous;
 
-    if (check(TOKEN_LEFT_PAREN)) {
-        return NONE_TYPE;
+    if (check(TOKEN_LEFT_PAREN)) return NONE_TYPE;
+    if (!varExist(var)) {
+        endCompilation();
+        exit(5);
     }
 
     if (match(TOKEN_EQUAL)) {
-        expression();
+        ValueType expressionType = expression();
+        if (!variableIsType(var, expressionType)) {
+            endCompilation();
+            exit(7);
+        }
         if (variableIsLocal(var)) {
             printf("POPS LF@%s$%d\n", var->lexeme, getVarDepth(var));
         } else {
@@ -322,7 +364,7 @@ static ValueType variable(Token* name) {
         }
     }
 
-    return NONE_TYPE;
+    return variableType(var);
 }
 
 static ValueType unary(Token* name) {
@@ -423,15 +465,17 @@ static ValueType call(Token* funcName) {
     int argumentNum = 1;
     printf("CREATEFRAME\n");
     if (isNative(funcName->lexeme)) {
+        printf("PUSHFRAME\n");
         if (!check(TOKEN_RIGHT_PAREN)) {
             do {
-                printf("DEFVAR TF@%%%d\n", argumentNum);
+                printf("DEFVAR LF@%%%d\n", argumentNum);
                 expression();
-                printf("POPS TF@%%%d\n", argumentNum++);
+                printf("POPS LF@%%%d\n", argumentNum++);
             } while (match(TOKEN_COMMA));
         }
 
         returnType = nativeFunc(funcName->lexeme, argumentNum);
+        printf("POPFRAME\n");
     } else {
         printf("PUSHFRAME\n");
 
@@ -538,38 +582,55 @@ static void funcDeclaration() {
 }
 
 static void variableDeclaration(bool isLocal, bool inFunctionParams) {
+    bool isConst;
+    if (match(TOKEN_VAR)) isConst = false;
+    else if (match(TOKEN_LET)) isConst = true;
+
     Token* var = parser.current;
+
     advance(); //check variable type next
     if (isLocal) {
+        if (localVarExistOnCurrentDepth(var)) {
+            endCompilation();
+            exit(3);
+        }
         printf("DEFVAR LF@%s$%d\n", var->lexeme, locals.scopeDepth);
     } else {
+        if (globalVarExist(var)) {
+            endCompilation();
+            exit(3);
+        }
         printf("DEFVAR GF@%s\n", var->lexeme);
     }
 
-    ValueType declaredType;
-    ValueType expressionType;
+    ValueType declaredType = NONE_TYPE;
+    ValueType expressionType = NONE_TYPE;
 
-    if (match(TOKEN_COLON)) {
-        type(&declaredType);
-    } else {
-        declaredType = NONE_TYPE;
-    }
+    if (match(TOKEN_COLON)) type(&declaredType);
 
     // if (!inFunctionParams) {
     if (match(TOKEN_EQUAL)) {
         expressionType = expression();
-        if (expressionType == FLOAT && declaredType == INTEGER) {
-            printf("FLOAT2INTS\n");
-        }
+        if (expressionType == FLOAT && declaredType == INTEGER) printf("FLOAT2INTS\n");
         else if (expressionType == INTEGER && declaredType == FLOAT) printf("INT2FLOATS\n");
+        else if (expressionType != declaredType && declaredType != NONE_TYPE) {
+            endCompilation();
+            exit(7);
+        }
     } else {
         printf("PUSHS nil@nil\n");     
     }
 
+    if (expressionType == NONE_TYPE && declaredType == NONE_TYPE) {
+        endCompilation();
+        exit(8);
+    } 
+
     if (isLocal) {
-        pushLocal(var, declaredType == NONE_TYPE? expressionType : declaredType);
+        pushLocal(var, isConst, declaredType == NONE_TYPE? expressionType : declaredType);
         printf("POPS LF@%s$%d\n", var->lexeme, getVarDepth(var));
     } else {
+        symtable_insert_variable(varTable, var->lexeme, isConst, declaredType == NONE_TYPE? expressionType : declaredType);
         printf("POPS GF@%s\n", var->lexeme);
     }
 
@@ -649,7 +710,7 @@ static void expressionStatement() {
 static void declaration(bool isLocal, bool isFirstFrame) {
     if (match(TOKEN_FUNC)) {
         while (!match(TOKEN_RIGHT_BRACE)) advance();
-    } else if (match(TOKEN_VAR) || match(TOKEN_LET)) {
+    } else if (check(TOKEN_VAR) || check(TOKEN_LET)) {
         variableDeclaration(isLocal, false);
     } else if (match(TOKEN_EOL)) {
     } else {
@@ -678,12 +739,14 @@ static void statement(bool isFirstFrame) {
 }
 
 //initialises parser to first token in the list, writes header to output file
-static void initCompiler(TokenList* userList) {
+static void initCompiler(TokenList* userList, symtable* variables, symtable* functions) {
     parser.previous = userList->tokens;
     parser.current = userList->tokens;
+    list = userList;
+    varTable = variables;
+    funcTable = functions;
     locals.localPos = -1;
     locals.scopeDepth = 0;
-    list = userList;
     jumpNumber = 0;
     questionLabel = 0;
     substringLabel = 0;
@@ -705,12 +768,14 @@ static void restartCompiler(TokenList* userList) {
 
 //ends compilation process
 static void endCompilation() {
-
+    symtable_delete_table(varTable);
+    symtable_delete_table(funcTable);    
+    token_delete_tokens(list);
 }
 
 //public function for compiling list of tokens
-int compile(TokenList* list) {
-    initCompiler(list);
+int compile(TokenList* list, symtable* variables, symtable* functions) {
+    initCompiler(list, variables, functions);
 
     while (!match(TOKEN_EOF)) {
         if (match(TOKEN_FUNC)) funcDeclaration();

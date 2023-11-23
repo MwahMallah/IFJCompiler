@@ -1,7 +1,7 @@
 CC=gcc
 TEST_SRC=test/unity.c
 
-all: main.c parser/parser.c data_structures/symtable.c scanner/scanner.c data_structures/tokens.c data_structures/str.c test/debug.c codeGenerator/compiler.c
+all: main.c data_structures/symtable.c scanner/scanner.c data_structures/tokens.c data_structures/str.c test/debug.c codeGenerator/compiler.c
 	$(CC) -o main $^
 
 old_rus: main.c scanner/oldRusScanner.c data_structures/tokens.c data_structures/str.c test/debug.c codeGenerator/compiler.c

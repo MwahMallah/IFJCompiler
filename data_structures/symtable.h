@@ -39,7 +39,6 @@ typedef struct {
     symbol** pairs;
 } symtable;
 
-
 typedef struct variableInfo{
     bool isConst;
     ValueType type;
