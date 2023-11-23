@@ -4,7 +4,6 @@
 #include "parser.h"
 
 static int currentToken = 0;
-static bool isEOF = false;
 static TokenList *tokenList;
 static symtable *varTable;
 static symtable *funcTable;
@@ -83,8 +82,61 @@ static void isCurrentIncreaseExit(TokenType type, int exitCode){
     exit(exitCode);
 }
 
+static ValueType getTypeFromCurrent(){
+    switch (tokenList->tokens[currentToken].type) {
+        case TOKEN_TYPE_STRING:
+            return STRING;
+        case TOKEN_TYPE_INT:
+            return INTEGER;
+        case TOKEN_TYPE_DOUBLE:
+            return FLOAT;
+        default:
+            return NONE_TYPE;
+    }
+}
 
-static void expression()
+
+static bool isCurrentOperation(){
+    return isCurrent(TOKEN_PLUS) || isCurrent(TOKEN_MINUS) || isCurrent(TOKEN_STAR) || isCurrent(TOKEN_SLASH);
+}
+
+static void expression(){
+    ValueType expressionType = NONE_TYPE;
+    while (isCurrentOperation() || isCurrent(TOKEN_INTEGER) || isCurrent(TOKEN_STRING) || isCurrent(TOKEN_FLOAT)){
+
+    }
+//    int countOfBrackets = 0;
+//    if(isCurrentIncrease(TOKEN_LEFT_PAREN)){
+//        countOfBrackets++;
+//    }
+//    ValueType expressionType = getTypeFromCurrent();
+//    if(expressionType == NONE_TYPE){
+//        exit(2);
+//    }
+//    while (true){
+//        if(isCurrent(TOKEN_IDENTIFIER)){
+//            //todo check of variable
+//        } else{
+//            ValueType temp = getTypeFromCurrent();
+//            if(temp == NONE_TYPE){
+//                exit(2);
+//            }
+//            if(expressionType == NONE_TYPE){
+//                expressionType = temp;
+//            } else if()
+//        }
+//        currentToken++;
+//        if(isCurrentIncrease(TOKEN_RIGHT_PAREN)){
+//            if(countOfBrackets == 0){
+//                exit(2);
+//            }
+//        }
+//        if(!isCurrentOperation()){
+//            exit(2);
+//        }
+//
+//    }
+}
 
 
 
@@ -104,19 +156,8 @@ static void variableDeclaration(){
     currentToken++;
     //type declaration
     if(isCurrentIncrease(TOKEN_COLON)){
-        switch (tokenList->tokens[currentToken].type) {
-            case TOKEN_TYPE_STRING:
-                varType = STRING;
-                break;
-            case TOKEN_TYPE_INT:
-                varType = INTEGER;
-                break;
-            case TOKEN_TYPE_DOUBLE:
-                varType = FLOAT;
-                break;
-            default:
-                exit(2);
-        }
+        varType = getTypeFromCurrent();
+        currentToken++;
         isCurrentIncrease(TOKEN_QUESTION);
         if(isCurrentIncrease(TOKEN_EOL)){
             return;
@@ -144,6 +185,9 @@ static void assignment(){
 }
 
 static void parseBlock(){
+    isCurrentIncrease(TOKEN_EOL);//todo eol???
+    isCurrentIncreaseExit(TOKEN_LEFT_BRACE, 2);
+    isCurrentIncrease(TOKEN_EOL);//todo not sure
     while (!isCurrentIncrease(TOKEN_RIGHT_BRACE)){
         parseLine();
     }
@@ -151,18 +195,35 @@ static void parseBlock(){
 
 static void parseIf(){
     //todo exp
-    isCurrentIncrease(TOKEN_EOL);//todo eol???
-    isCurrentIncreaseExit(TOKEN_LEFT_BRACE, 2);
-    isCurrentIncreaseExit(TOKEN_EOL, 2);//todo not sure
     parseBlock();
-    isCurrentIncrease(TOKEN_EOL);//todo eol???
-    if(!isCurrentIncrease(TOKEN_ELSE)){
-        return;
+    if(isCurrentIncrease(TOKEN_EOL)){
+        if(!isCurrentIncrease(TOKEN_ELSE)){
+            return;
+        }
+    } else{
+        isCurrentIncreaseExit(TOKEN_ELSE, 2);
     }
-    isCurrentIncrease(TOKEN_EOL);//todo eol???
-    isCurrentIncreaseExit(TOKEN_LEFT_BRACE, 2);
     parseBlock();
-    isCurrentIncrease(TOKEN_EOL);
+    isCurrentIncreaseExit(TOKEN_EOL, 2);
+}
+
+static void parseWhile(){
+    //todo exp
+    parseBlock();
+    isCurrentIncreaseExit(TOKEN_EOL, 2);
+}
+
+static void funcDeclaration(){
+    isCurrentExit(TOKEN_IDENTIFIER, 2);
+    char *funcName = tokenList->tokens[currentToken].lexeme;
+    funcInfo *info = symtable_get_pair(funcTable, funcName);
+    if(info){
+        exit(9);//todo not sure
+    }
+    currentToken++;
+    isCurrentIncreaseExit(TOKEN_LEFT_PAREN, 2);
+
+
 }
 
 static void parseLine(){
@@ -176,6 +237,10 @@ static void parseLine(){
         }
     } else if(isCurrentIncrease(TOKEN_IF)){
         parseIf();
+    } else if(isCurrentIncrease(TOKEN_WHILE)){
+        parseWhile();
+    } else if(isCurrentIncrease(TOKEN_FUNC)){
+        funcDeclaration();
     }
 }
 
@@ -185,5 +250,6 @@ void parse(TokenList *list, symtable *variableTable, symtable *functionTable) {
     funcTable = functionTable;
     while (!isCurrent(TOKEN_EOF)) {
         parseLine();
+        currentToken++;
     }
 }
