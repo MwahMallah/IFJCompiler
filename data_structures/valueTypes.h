@@ -12,6 +12,7 @@ typedef enum{
     INTEGER,
     FLOAT,
     BOOLEAN,
+    NIL,
     NONE_TYPE
 } ValueType;
 

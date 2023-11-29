@@ -21,6 +21,9 @@ void printType(ValueType type) {
         case BOOLEAN:
             printf("BOOLEAN\n");
             break;
+        case NIL:
+            printf("NIL_TYPE\n");
+            break;
         case NONE_TYPE:
             printf("NONE_TYPE\n");
             break;  

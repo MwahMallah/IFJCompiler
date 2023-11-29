@@ -168,11 +168,15 @@ static void skipWhiteSpaces() {
                     advance(); //skip newline after comment's end
                     skipWhiteSpaces();
                 } else if (peekNext() == '*') {
-                    while ((peek() != '*' || peekNext() != '/') && !isAtEnd()) {
-                        char ch = advance();
-                    }     
-                    advance();
-                    advance();      
+                    int inner = 0;
+                    char ch1, ch2;
+                    ch1 = advance();
+                    do {
+                        ch2 = advance();
+                        if (ch1 == '*' && ch2 == '/') inner--;
+                        else if (ch1 == '/' && ch2 == '*') inner++;
+                        ch1 = ch2;                        
+                    } while(inner != 0);
                     skipWhiteSpaces();         
                 }
             default:

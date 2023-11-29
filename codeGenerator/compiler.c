@@ -153,6 +153,15 @@ static ValueType isLocalVarInitialized(Token* variable) {
     return false;
 }
 
+static void initializeVar(Token* variable) {
+    if (variableIsLocal(variable)) {
+        initializeLocalVar(variable);
+    } else {
+        varInfo* info = (varInfo*) symtable_get_pair(varTable, variable->lexeme);
+        info->isInitialized = true;
+    }
+}
+
 static bool varInitialized(Token* variable) {
     if (variableIsLocal(variable)) {
         return isLocalVarInitialized(variable);
@@ -178,6 +187,15 @@ static int getUserFuncArgumentPos(Token* prefix, Token* funcName) {
         if (compare_strings(info->paramNames[i], prefix->lexeme) == 1) return i + 1;
     }
     return -1;
+}
+
+static int prefixedArgsInUserFunc(Token* funcName) {
+    funcInfo* info = (funcInfo*) symtable_get_pair(funcTable, funcName->lexeme);
+    int prefixedArgs = 0;
+    for (int i = 0; i < info->numOfParams; i++) {
+        if (compare_strings(info->paramNames[i], "_") == 0) prefixedArgs++;
+    }
+    return prefixedArgs;
 }
 
 static ValueType userFuncReturnType(Token* funcName) {
@@ -343,6 +361,7 @@ static int userFuncParams(char* funcName) {
     return info->numOfParams;
 }
 
+
 //pops local variable frame
 static void popLocalFrame() {
     // printf("POPFRAME\n");
@@ -384,6 +403,12 @@ static bool consume(TokenType type) {
     }
 }
 
+static bool checkNext(TokenType type) {
+    Token* tok = parser.current + 1;
+    return tok->type == type;
+}
+
+
 static bool check(TokenType type) {
     return parser.current->type == type;
 }
@@ -394,19 +419,21 @@ static bool match(TokenType type) {
     return true;
 }
 
-static bool type(ValueType* declaredType) {
+static bool type(ValueType* declaredType, bool* nullable) {
     if (match(TOKEN_TYPE_DOUBLE)) {
-        match(TOKEN_QUESTION);
+        if (match(TOKEN_QUESTION)) *nullable = true;
         *declaredType = FLOAT;
         return true;
     } else if (match(TOKEN_TYPE_STRING)) {
-        match(TOKEN_QUESTION);
+        if (match(TOKEN_QUESTION)) *nullable = true;
         *declaredType = STRING;
         return true;
     } else if (match(TOKEN_TYPE_INT)) {
-        match(TOKEN_QUESTION);
+        if (match(TOKEN_QUESTION)) *nullable = true;
         *declaredType = INTEGER;
         return true;
+    } else {
+        compilationError(2);
     }
 
     return false;
@@ -444,7 +471,10 @@ static ValueType literal(Token* name) {
     {
         case TOKEN_TRUE: printf("PUSHS bool@%s\n", parser.previous->lexeme); break;
         case TOKEN_FALSE: printf("PUSHS bool@%s\n", parser.previous->lexeme); break;
-        case TOKEN_NIL: printf("PUSHS nil@%s\n", parser.previous->lexeme); break;
+        case TOKEN_NIL: {
+            printf("PUSHS nil@%s\n", parser.previous->lexeme); 
+            return NIL;
+        }
         default: break;
     }
     
@@ -460,7 +490,7 @@ static ValueType variable(Token* name) {
     Token* var = parser.previous;
 
     if (check(TOKEN_LEFT_PAREN)) return NONE_TYPE;
-    if (!varExist(var) || !varInitialized(var)) compilationError(5);
+    if (!varExist(var)) compilationError(5);
 
     if (match(TOKEN_EQUAL)) {
         ValueType expressionType = expression();
@@ -470,7 +500,9 @@ static ValueType variable(Token* name) {
         } else {
             printf("POPS GF@%s\n", var->lexeme);
         }
+        if (!varInitialized(var)) initializeVar(var);
     } else {
+        if (!varInitialized(var)) compilationError(5);
         if (variableIsLocal(var)) {
             printf("PUSHS LF@%s$%d\n", var->lexeme, getVarDepth(var));
         } else {
@@ -585,45 +617,55 @@ static ValueType call(Token* funcName) {
     bool paramHasPrefix = false;
     printf("CREATEFRAME\n");
     if (isNative(funcName->lexeme)) {
-        printf("PUSHFRAME\n");
         if (!check(TOKEN_RIGHT_PAREN)) {
             do {
-                printf("DEFVAR LF@%%%d\n", argumentNum);
+                printf("DEFVAR TF@%%%d\n", argumentNum);
                 expression();
-                printf("POPS LF@%%%d\n", argumentNum++);
+                printf("POPS TF@%%%d\n", argumentNum++);
             } while (match(TOKEN_COMMA));
         }
+        printf("PUSHFRAME\n");
         if (argumentNum - 1 > nativeFuncParams(funcName->lexeme)) compilationError(4);
         returnType = nativeFunc(funcName->lexeme, argumentNum);
-        printf("POPFRAME\n");
-    } else {
+        // printf("POPFRAME\n");
+    } else if (isUserFunc(funcName)) {
         printf("PUSHFRAME\n");
         returnType = userFuncReturnType(funcName);
 
         if (!check(TOKEN_RIGHT_PAREN)) {
-            Token* prefix;
+            Token* prefix = NULL;
+            int prefixedArgs = 0;
             do {
-                if (match(TOKEN_IDENTIFIER)) {
+                if (check(TOKEN_IDENTIFIER) && checkNext(TOKEN_COLON)) {
+                    match(TOKEN_IDENTIFIER);
                     prefix = parser.previous;
-                    consume(TOKEN_COLON);
+                    match(TOKEN_COLON);
                     paramHasPrefix = true;
                 }
                 int prefixNum = getUserFuncArgumentPos(prefix, funcName);
                 if (prefixNum < 0 && paramHasPrefix) compilationError(4);
-                if (prefixNum > 0) paramNum = prefixNum;
+                if (prefixNum > 0) {
+                    paramNum = prefixNum;
+                    prefixedArgs++;
+                }
                 printf("DEFVAR LF@%%%d\n", paramNum);
                 expression();
                 printf("POPS LF@%%%d\n", paramNum++);
                 argumentNum++;
                 paramHasPrefix = false;
             } while (match(TOKEN_COMMA));
+            if (prefixedArgs != prefixedArgsInUserFunc(funcName)) compilationError(4);
         }
 
         if (argumentNum - 1 > userFuncParams(funcName->lexeme)) compilationError(4);
         printf("CALL $%s\n", funcName->lexeme);
-        printf("PUSHS TF@%%retval\n");
+        // printf("PUSHS TF@%%retval\n");
+        if (userFuncReturnType(funcName) != NONE_TYPE) printf("PUSHS LF@%%retval\n");
+    } else {
+        compilationError(3);
     }
 
+    printf("POPFRAME\n");
     consume(TOKEN_RIGHT_PAREN);
     return returnType;
 }
@@ -690,6 +732,7 @@ static void block() {
 static void funcDeclaration() {
     createLocalFrame();
     Token* funcName = parser.current;
+    if (isFunc(funcName)) compilationError(3);
     char* prefixes[256];
     consume(TOKEN_IDENTIFIER);
     
@@ -712,14 +755,16 @@ static void funcDeclaration() {
         } while(match(TOKEN_COMMA));
     }
     consume(TOKEN_RIGHT_PAREN);
-    consume(TOKEN_ARROW);
-    ValueType returnType = getValueType(parser.current);
-    advance(); 
+    ValueType returnType = NONE_TYPE;
+    if (match(TOKEN_ARROW)) {
+        returnType = getValueType(parser.current);
+        advance(); 
+    } 
     symtable_insert_function(funcTable, funcName->lexeme, returnType, argumentNum, prefixes);
     match(TOKEN_EOL);
     consume(TOKEN_LEFT_BRACE);
     block();
-    printf("POPFRAME\n");
+    // printf("POPFRAME\n");
     printf("RETURN\n");
     popLocalFrame();
 }
@@ -732,7 +777,9 @@ static void variableDeclaration(bool isLocal, bool inFunctionParams) {
 
     Token* var = parser.current;
 
-    advance(); //check variable type next
+    consume(TOKEN_IDENTIFIER); //check variable type next
+    if (compare_strings(var->lexeme, "_") == 1) compilationError(2);
+
     if (isLocal) {
         if (localVarExistOnCurrentDepth(var)) compilationError(3);
         printf("DEFVAR LF@%s$%d\n", var->lexeme, locals.scopeDepth);
@@ -743,8 +790,9 @@ static void variableDeclaration(bool isLocal, bool inFunctionParams) {
 
     ValueType declaredType = NONE_TYPE;
     ValueType expressionType = NONE_TYPE;
+    bool isNullable = false;
 
-    if (match(TOKEN_COLON)) type(&declaredType);
+    if (match(TOKEN_COLON)) type(&declaredType, &isNullable);
 
     // if (!inFunctionParams) {
     if (match(TOKEN_EQUAL)) {
@@ -752,6 +800,9 @@ static void variableDeclaration(bool isLocal, bool inFunctionParams) {
         expressionType = expression();
         if (expressionType == FLOAT && declaredType == INTEGER) printf("FLOAT2INTS\n");
         else if (expressionType == INTEGER && declaredType == FLOAT) printf("INT2FLOATS\n");
+        else if (expressionType == NIL && declaredType == NONE_TYPE) compilationError(8);
+        else if (expressionType == NIL && !isNullable) compilationError(7);
+        else if (expressionType == NIL && isNullable); 
         else if (expressionType != declaredType && declaredType != NONE_TYPE) compilationError(7);
     } else {
         printf("PUSHS nil@nil\n");     
@@ -774,11 +825,20 @@ static void variableDeclaration(bool isLocal, bool inFunctionParams) {
 static void ifStatement() {
     if (match(TOKEN_LET)) {
         printf("PUSHS nil@nil\n");
+        Token* var = parser.current;
         advance();
-        variable(NULL);
-    } else if (consume(TOKEN_LEFT_PAREN)) {
+        if (!varExist(var)) compilationError(5);
+        if (variableIsLocal(var)) {
+            printf("PUSHS LF@%s$%d\n", var->lexeme, getVarDepth(var));
+        } else {
+            printf("PUSHS GF@%s\n", var->lexeme);
+        }        
+    } else if (match(TOKEN_LEFT_PAREN)) {
         ValueType type = expression();
         consume(TOKEN_RIGHT_PAREN);
+        printf("PUSHS bool@false\n"); //JUMPIFNEQS takes two values from stack, so we push one more
+    } else {
+        ValueType type = expression();
         printf("PUSHS bool@false\n"); //JUMPIFNEQS takes two values from stack, so we push one more
     }
 
@@ -790,6 +850,7 @@ static void ifStatement() {
     consume(TOKEN_LEFT_BRACE);
     createLocalFrame();
     block();
+    match(TOKEN_EOL);
     popLocalFrame();
     printf("JUMP thenJump%d\n", ifStmtNum); //escapes else statement
 
@@ -801,7 +862,6 @@ static void ifStatement() {
         block();
         popLocalFrame();
     }
-
     printf("LABEL thenJump%d\n", ifStmtNum);
 }
 
@@ -919,6 +979,7 @@ int compile(TokenList* list, symtable* variables, symtable* functions) {
 
     printf("LABEL $$main\n");
     // advance();
+    int i = 0;
     while (!match(TOKEN_EOF)) {
         if (match(TOKEN_FUNC)) skipFunctionDecl();
         else declaration(false, true);

@@ -1,10 +1,6 @@
-func minus(with a : Int, by b : Int) -> Int {
-    return a - b
+func foo(a b : String)
+{
+    write(b)
 }
 
-func add(with a : Int, by b : Int) -> Int {
-    return a + b
-}
-
-write(add(by: 3, with: 2), "\n")
-write(minus(with: 3, by: 2), "\n")
+foo(a : 3)
