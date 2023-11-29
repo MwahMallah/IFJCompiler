@@ -82,7 +82,7 @@ static void symtable_insert_pair(symtable *table, char *key, void *value){
     table->count++;
 }
 
-void symtable_insert_variable(symtable* table, char* key, bool isConst, bool isInitialized, ValueType type){
+void symtable_insert_variable(symtable* table, char* key, bool isConst, bool isInitialized, bool isNullable, ValueType type){
     varInfo *info = malloc(sizeof(varInfo));
     if(!info){
         exit(99);
@@ -90,6 +90,7 @@ void symtable_insert_variable(symtable* table, char* key, bool isConst, bool isI
     info->type = type;
     info->isConst = isConst;
     info->isInitialized = isInitialized;
+    info->isNullable = isNullable;
     symtable_insert_pair(table, key, info);
 }
 
