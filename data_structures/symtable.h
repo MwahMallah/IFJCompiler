@@ -50,6 +50,7 @@ typedef struct functionInfo{
     ValueType returnType;
     int numOfParams;
     char *paramNames[256];
+    ValueType paramTypes[256];
 } funcInfo;
 
 /*
@@ -59,7 +60,7 @@ typedef struct functionInfo{
 symtable* symtable_create_table(TableType type); //creates new symbol table
 void symtable_delete_table(symtable* table); //deletes table itself
 void symtable_insert_variable(symtable* table, char* key, bool isConst, bool isInitialized, bool isNullable, ValueType type);
-void symtable_insert_function(symtable* table, char* key, ValueType returnType, int numOfParams, char *names[256]);
+void symtable_insert_function(symtable* table, char* key, ValueType returnType, int numOfParams, char *names[256], ValueType types[256]);
 void *symtable_get_pair(symtable* table, char* key); //searches for  value by a given key
 void symtable_delete_pair(symtable* table, char* key); //deletes entry with a given key
 

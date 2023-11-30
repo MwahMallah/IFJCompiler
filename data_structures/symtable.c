@@ -94,7 +94,7 @@ void symtable_insert_variable(symtable* table, char* key, bool isConst, bool isI
     symtable_insert_pair(table, key, info);
 }
 
-void symtable_insert_function(symtable* table, char* key, ValueType returnType, int numOfParams, char *names[256]){
+void symtable_insert_function(symtable* table, char* key, ValueType returnType, int numOfParams, char *names[256], ValueType types[256]){
     funcInfo *info = malloc(sizeof(funcInfo));
     if(!info){
         exit(99);
@@ -103,6 +103,7 @@ void symtable_insert_function(symtable* table, char* key, ValueType returnType, 
     info->numOfParams = numOfParams;
     for (int i = 0; i < numOfParams; ++i) {
         info->paramNames[i] = names[i];
+        info->paramTypes[i] = types[i];
     }
     symtable_insert_pair(table, key, info);
 }
