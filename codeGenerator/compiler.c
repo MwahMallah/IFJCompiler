@@ -28,7 +28,7 @@ typedef enum {
     PREC_PRIMARY
 } Precedence;
 
-typedef ValueType (*ParseFn)(Token*);
+typedef ValueType (*ParseFn)(Token*, ValueType);
 
 //struct that dictates parsing rule for various operation
 typedef struct {
@@ -51,6 +51,7 @@ typedef struct
     ValueType type;
     bool isConst;
     bool isInitialized;
+    bool isParam;
     int depth;
 } Local;
 
@@ -74,23 +75,24 @@ static int substringLabel;
 //function declarations
 static void endCompilation();
 static ValueType expression();
-static void statement(bool isFirstFrame);
-static void declaration(bool isLocal, bool isFirstFrame);
+static void statement(bool isFirstFrame, Token* funcName);
+static void declaration(bool isLocal, bool isFirstFrame, Token* funcName);
 static ParseRule* getRule(TokenType type);
 static ValueType parsePrecedence(Precedence precedence);
-static void variableDeclaration(bool isLocal, bool inFunctionParams);
+static ValueType variableDeclaration(bool isLocal, bool inFunctionParams);
 static ValueType nativeType(char* funcName);
 static bool isNative(char* funcName);
 static bool isFunc(Token* funcName);
 
 //pushes variable to list of local variables
-static void pushLocal(Token* variable, bool isConst, bool isInitialized, ValueType declaredType) {
+static void pushLocal(Token* variable, bool isConst, bool isInitialized, bool isParam, ValueType declaredType) {
     Local newLocal;
     newLocal.variable = *variable;
     newLocal.depth = locals.scopeDepth;
     newLocal.type = declaredType;
     newLocal.isConst = isConst;
     newLocal.isInitialized = isInitialized;
+    newLocal.isParam = isParam;
     locals.variables[++locals.localPos] = newLocal;
 }
 
@@ -127,6 +129,15 @@ static int getVarDepth(Token* variable) {
     return 0;
 }
 
+static bool localVarIsConst(Token* variable) {
+    for (int i = locals.localPos; i >= 0; i--) {
+        if (compare_strings(variable->lexeme, locals.variables[i].variable.lexeme) == 1) {
+            return locals.variables[i].isConst;
+        }
+    }
+    return false;
+}
+
 static ValueType getLocalVarType(Token* variable) {
     for (int i = locals.localPos; i >= 0; i--) {
         if (compare_strings(variable->lexeme, locals.variables[i].variable.lexeme) == 1) {
@@ -140,6 +151,7 @@ static void initializeLocalVar(Token* variable) {
     for (int i = locals.localPos; i >= 0; i--) {
         if (compare_strings(variable->lexeme, locals.variables[i].variable.lexeme) == 1) {
             locals.variables[i].isInitialized = true;
+            locals.variables[i].isParam = true;
         }
     }
 }
@@ -178,6 +190,11 @@ static bool varExist(Token* variable) {
         varInfo* info = (varInfo*) symtable_get_pair(varTable, variable->lexeme);
         return info != NULL;
     }
+}
+
+static bool checkUserFuncArgType(Token* funcName, ValueType argType, int paramNum) {
+    funcInfo* info = (funcInfo*) symtable_get_pair(funcTable, funcName->lexeme);
+    return argType == info->paramTypes[paramNum - 1];
 }
 
 static int getUserFuncArgumentPos(Token* prefix, Token* funcName) {
@@ -220,6 +237,25 @@ static ValueType variableType(Token* variable) {
         varInfo* info = (varInfo*) symtable_get_pair(varTable, variable->lexeme);
         return info == NULL? NONE_TYPE : info->type;
     }
+}
+
+static bool varIsConst(Token* variable) {
+    if (variableIsLocal(variable)) {
+        return localVarIsConst(variable);
+    } else {
+        varInfo* info = (varInfo*) symtable_get_pair(varTable, variable->lexeme);
+        return info->isConst;
+    }
+}
+
+static bool varIsParam(Token* var) {
+    for (int i = locals.localPos; i >= 0; i--) {
+        if (compare_strings(var->lexeme, locals.variables[i].variable.lexeme) == 1) {
+            return locals.variables[i].isParam;
+        }
+    }
+    
+    return false;
 }
 
 static bool variableIsType(Token* variable, ValueType type) {
@@ -312,8 +348,22 @@ static ValueType nativeFunc(char* funcName, int numArgs) {
         printf("STRI2INTS\n");
         return INTEGER;
     } else if (compare_strings(funcName, "substring") == 1) {
+        printf("LT GF@tmp_op1 LF@%%2 int@0\n");
+        printf("JUMPIFEQ %%substringNil$%d GF@tmp_op1 bool@true\n", substringLabel);
+        printf("LT GF@tmp_op1 LF@%%3 int@0\n");
+        printf("JUMPIFEQ %%substringNil$%d GF@tmp_op1 bool@true\n", substringLabel);
+        printf("JUMPIFEQ %%substringNil$%d LF@%%3 LF@%%2\n", substringLabel);
+        printf("LT GF@tmp_op1 LF@%%3 LF@%%2\n");
+        printf("JUMPIFEQ %%substringNil$%d GF@tmp_op1 bool@true\n", substringLabel);
+        printf("STRLEN GF@tmp_op2 LF@%%1\n");     //length
+        printf("GT GF@tmp_op1 LF@%%3 GF@tmp_op2\n");
+        printf("JUMPIFEQ %%substringNil$%d GF@tmp_op1 bool@true\n", substringLabel);
+        printf("STRLEN GF@tmp_op2 LF@%%1\n");     //length
+        printf("JUMPIFEQ %%substringNil$%d GF@tmp_op2 LF@%%2\n", substringLabel);
+        printf("GT GF@tmp_op1 LF@%%2 GF@tmp_op2\n");
+        printf("JUMPIFEQ %%substringNil$%d GF@tmp_op1 bool@true\n", substringLabel);
         printf("PUSHS string@\n");
-        printf("POPS GF@tmp_op1\n");
+        printf("POPS GF@tmp_op1\n");   //accumulator
         printf("LABEL %%substring$%d\n", substringLabel);
         printf("PUSHS LF@%%2\n");
         printf("PUSHS LF@%%3\n");
@@ -322,8 +372,12 @@ static ValueType nativeFunc(char* funcName, int numArgs) {
         printf("CONCAT GF@tmp_op1 GF@tmp_op1 GF@tmp_op2\n");
         printf("ADD LF@%%2 LF@%%2 int@1\n");
         printf("JUMP %%substring$%d\n", substringLabel);
-        printf("LABEL %%substringEnd$%d\n", substringLabel++);
+        printf("LABEL %%substringEnd$%d\n", substringLabel);
         printf("PUSHS GF@tmp_op1\n");
+        printf("JUMP  %%substringEndFinal$%d\n", substringLabel);
+        printf("LABEL %%substringNil$%d\n", substringLabel);
+        printf("PUSHS nil@nil\n");
+        printf("LABEL %%substringEndFinal$%d\n", substringLabel++);
         return STRING;
     }
 
@@ -354,6 +408,39 @@ static int nativeFuncParams(char* funcName) {
     else if (compare_strings(funcName, "length") == 1) return 1;
     else if (compare_strings(funcName, "ord") == 1) return 1;
     else if (compare_strings(funcName, "substring") == 1) return 3;  
+}
+
+
+static bool checkNativeFuncArgType(char* funcName, ValueType argType, int paramNum) {
+    if (paramNum > nativeFuncParams(funcName)) return false;
+    
+    if (compare_strings(funcName, "write") == 1) return true;
+    else if (compare_strings(funcName, "readInt") == 1) return false;
+    else if (compare_strings(funcName, "readString") == 1) return false;
+    else if (compare_strings(funcName, "readDouble") == 1) return false;
+    else if (compare_strings(funcName, "Int2Double") == 1) {
+        return argType == INTEGER;
+    }
+    else if (compare_strings(funcName, "Double2Int")  == 1) {
+        return argType == FLOAT;
+    }
+    else if (compare_strings(funcName, "chr") == 1) {
+        return argType == INTEGER;
+    }
+    else if (compare_strings(funcName, "length") == 1) {
+        return argType == STRING;
+    }
+    else if (compare_strings(funcName, "ord") == 1) {
+        return argType == STRING;
+    }
+    else if (compare_strings(funcName, "substring") == 1) {
+        if (paramNum == 1) {
+            return argType == STRING;
+        } else {
+            return argType == INTEGER;
+        }
+    } 
+    return false;
 }
 
 static int userFuncParams(char* funcName) {
@@ -452,21 +539,24 @@ static void skipFunctionDecl() {
 
 //function, that adds push instruction to output file
 //pushes integer value to vm stack
-static ValueType integer(Token* name) {
+static ValueType integer(Token* name, ValueType type) {
+    if (getRule(name->type)->prefix != NULL && getRule(name->type)->infix == NULL) compilationError(2);
     printf("PUSHS int@%s\n", parser.previous->lexeme);
     return INTEGER;
 }
 
 //function, that adds push instruction to output file
 //pushes float value to vm stack
-static ValueType floating(Token* name) {
+static ValueType floating(Token* name, ValueType type) {
+    if (getRule(name->type)->prefix != NULL && getRule(name->type)->infix == NULL) compilationError(2);
     double value = strtodouble(parser.previous->lexeme);
     printf("PUSHS float@%a\n", value);
     return FLOAT;
 }
 
 //parses literal expression
-static ValueType literal(Token* name) {
+static ValueType literal(Token* name, ValueType type) {
+    if (getRule(name->type)->prefix != NULL && getRule(name->type)->infix == NULL) compilationError(2);
     switch (parser.previous->type)
     {
         case TOKEN_TRUE: printf("PUSHS bool@%s\n", parser.previous->lexeme); break;
@@ -481,26 +571,34 @@ static ValueType literal(Token* name) {
     return NONE_TYPE;
 }
 
-static ValueType string(Token* name) {
+static ValueType string(Token* name, ValueType type) {
+    if (getRule(name->type)->prefix != NULL && getRule(name->type)->infix == NULL) compilationError(2);
     printf("PUSHS string@%s\n", parser.previous->lexeme);
     return STRING;
 }
 
-static ValueType variable(Token* name) {
+static ValueType variable(Token* name, ValueType type) {
+    if (getRule(name->type)->prefix != NULL && getRule(name->type)->infix == NULL) compilationError(2);
+
     Token* var = parser.previous;
 
     if (check(TOKEN_LEFT_PAREN)) return NONE_TYPE;
     if (!varExist(var)) compilationError(5);
 
     if (match(TOKEN_EQUAL)) {
+        // if (varIsParam(var)) compilationError(9);
+        if (varIsConst(var) && varInitialized(var)) compilationError(9);
+
         ValueType expressionType = expression();
         if (!variableIsType(var, expressionType)) compilationError(7);
+
         if (variableIsLocal(var)) {
             printf("POPS LF@%s$%d\n", var->lexeme, getVarDepth(var));
         } else {
             printf("POPS GF@%s\n", var->lexeme);
         }
         if (!varInitialized(var)) initializeVar(var);
+
     } else {
         if (!varInitialized(var)) compilationError(5);
         if (variableIsLocal(var)) {
@@ -508,12 +606,13 @@ static ValueType variable(Token* name) {
         } else {
             printf("PUSHS GF@%s\n", var->lexeme);
         }
+        match(TOKEN_BANG);
     }
 
     return variableType(var);
 }
 
-static ValueType unary(Token* name) {
+static ValueType unary(Token* name, ValueType rType) {
     TokenType operator = parser.previous->type;
     Token* rightValue = parser.current;
 
@@ -533,14 +632,14 @@ static ValueType unary(Token* name) {
 }
 
 //parses grouping expression
-static ValueType grouping(Token* name) {
+static ValueType grouping(Token* name, ValueType lType) {
     ValueType type = expression();
     consume(TOKEN_RIGHT_PAREN);
     return type;
 }
 
 //parses binary expression
-static ValueType binary(Token* leftValue) {
+static ValueType binary(Token* leftValue, ValueType leftValueType) {
     TokenType operator = parser.previous->type;
     Token* rightValue = parser.current;
     ParseRule* rule = getRule(operator);
@@ -548,28 +647,39 @@ static ValueType binary(Token* leftValue) {
     ValueType binaryOpType = NONE_TYPE;
 
     //implicitly cast integer to double
-    if (getValueType(leftValue) == FLOAT && rightValueType == INTEGER) {
+    if (leftValueType == FLOAT && rightValueType == INTEGER && (leftValue->type != TOKEN_IDENTIFIER || rightValue->type != TOKEN_IDENTIFIER)) {
         binaryOpType = FLOAT;
         printf("INT2FLOATS\n");
-        if (rightValue->type == TOKEN_INTEGER) rightValue->type = TOKEN_FLOAT;
-    } else if (getValueType(leftValue) == INTEGER && rightValueType == FLOAT) {
+    } else if (leftValueType == INTEGER && rightValueType == FLOAT && (leftValue->type != TOKEN_IDENTIFIER || rightValue->type != TOKEN_IDENTIFIER)) {
         binaryOpType = FLOAT;
         printf("POPS GF@tmp_op1\n"); //right value
         printf("INT2FLOATS\n"); //left value to float
         printf("PUSHS GF@tmp_op1\n");
-        if (leftValue->type == TOKEN_INTEGER) leftValue->type = TOKEN_FLOAT;
-    } else if (getValueType(leftValue) != rightValueType) {
+    } else if (leftValueType != rightValueType && leftValueType != NIL && rightValueType != NIL) {
         compilationError(7);
     }
+    // if (getValueType(leftValue) == FLOAT && rightValueType == INTEGER) {
+    //     binaryOpType = FLOAT;
+    //     printf("INT2FLOATS\n");
+    //     if (rightValue->type == TOKEN_INTEGER) rightValue->type = TOKEN_FLOAT;
+    // } else if (getValueType(leftValue) == INTEGER && rightValueType == FLOAT) {
+    //     binaryOpType = FLOAT;
+    //     printf("POPS GF@tmp_op1\n"); //right value
+    //     printf("INT2FLOATS\n"); //left value to float
+    //     printf("PUSHS GF@tmp_op1\n");
+    //     if (leftValue->type == TOKEN_INTEGER) leftValue->type = TOKEN_FLOAT;
+    // } else if (leftValueType != rightValueType && ((leftValueType != INTEGER || leftValueType != FLOAT) && (rightValueType != FLOAT || rightValueType != INTEGER))) {
+    //     compilationError(7);
+    // }
 
     switch (operator)
     {
-        case TOKEN_LESS: printf("LTS\n"); break;
-        case TOKEN_GREATER: printf("GTS\n"); break;
-        case TOKEN_EQUAL_EQUAL: printf("EQS\n"); break;
-        case TOKEN_BANG_EQUAL: printf("EQS\nNOTS\n"); break;
-        case TOKEN_LESS_EQUAL: printf("GTS\nNOTS\n"); break;
-        case TOKEN_GREATER_EQUAL: printf("LTS\nNOTS\n"); break;
+        case TOKEN_LESS: printf("LTS\n"); binaryOpType = BOOLEAN; break;
+        case TOKEN_GREATER: printf("GTS\n"); binaryOpType = BOOLEAN; break;
+        case TOKEN_EQUAL_EQUAL: printf("EQS\n"); binaryOpType = BOOLEAN; break;
+        case TOKEN_BANG_EQUAL: printf("EQS\nNOTS\n"); binaryOpType = BOOLEAN; break;
+        case TOKEN_LESS_EQUAL: printf("GTS\nNOTS\n"); binaryOpType = BOOLEAN; break;
+        case TOKEN_GREATER_EQUAL: printf("LTS\nNOTS\n"); binaryOpType = BOOLEAN; break;
         case TOKEN_DOUBLE_QUESTIONS:
             printf("POPS GF@tmp_op2\n"); //right_operand
             printf("POPS GF@tmp_op1\n"); //left_operand
@@ -579,9 +689,9 @@ static ValueType binary(Token* leftValue) {
             printf("LABEL %%left_op$%d\n", questionLabel);
             printf("PUSHS GF@tmp_op1\n");
             printf("LABEL %%right_op$%d\n", questionLabel++);
-            if (leftValue->type == TOKEN_STRING || variableIsType(leftValue, STRING)) return STRING;
-            if (leftValue->type == TOKEN_INTEGER || variableIsType(leftValue, INTEGER)) return INTEGER;
-            if (leftValue->type == TOKEN_FLOAT || variableIsType(leftValue, FLOAT)) return FLOAT;
+            if (leftValue->type == TOKEN_STRING || variableIsType(leftValue, STRING)) binaryOpType = STRING;
+            else if (leftValue->type == TOKEN_INTEGER || variableIsType(leftValue, INTEGER)) binaryOpType = INTEGER;
+            else if (leftValue->type == TOKEN_FLOAT || variableIsType(leftValue, FLOAT)) binaryOpType = FLOAT;
             break;
         case TOKEN_PLUS: 
             if (getValueType(leftValue) == STRING || rightValueType == STRING) {
@@ -610,7 +720,7 @@ static ValueType binary(Token* leftValue) {
     return binaryOpType;
 }
 
-static ValueType call(Token* funcName) {
+static ValueType call(Token* funcName, ValueType lType) {
     ValueType returnType = NONE_TYPE;
     int argumentNum = 1;
     int paramNum = 1;
@@ -619,8 +729,22 @@ static ValueType call(Token* funcName) {
     if (isNative(funcName->lexeme)) {
         if (!check(TOKEN_RIGHT_PAREN)) {
             do {
+                if (check(TOKEN_IDENTIFIER) && checkNext(TOKEN_COLON)) {
+                    if (compare_strings(funcName->lexeme, "substring") == 0) compilationError(4);
+                    match(TOKEN_IDENTIFIER);
+                    Token* prefix = parser.previous;
+                    if (argumentNum == 1) {
+                        if (compare_strings(prefix->lexeme, "of") == 0) compilationError(4);
+                    } else if (argumentNum == 2) {
+                        if (compare_strings(prefix->lexeme, "startingAt") == 0) compilationError(4);
+                    } else if (argumentNum == 3) {
+                        if (compare_strings(prefix->lexeme, "endingBefore") == 0) compilationError(4);
+                    }
+                    match(TOKEN_COLON);
+                }
                 printf("DEFVAR TF@%%%d\n", argumentNum);
-                expression();
+                ValueType argType = expression();
+                if (!checkNativeFuncArgType(funcName->lexeme, argType, argumentNum)) compilationError(4);
                 printf("POPS TF@%%%d\n", argumentNum++);
             } while (match(TOKEN_COMMA));
         }
@@ -629,7 +753,6 @@ static ValueType call(Token* funcName) {
         returnType = nativeFunc(funcName->lexeme, argumentNum);
         // printf("POPFRAME\n");
     } else if (isUserFunc(funcName)) {
-        printf("PUSHFRAME\n");
         returnType = userFuncReturnType(funcName);
 
         if (!check(TOKEN_RIGHT_PAREN)) {
@@ -648,14 +771,17 @@ static ValueType call(Token* funcName) {
                     paramNum = prefixNum;
                     prefixedArgs++;
                 }
-                printf("DEFVAR LF@%%%d\n", paramNum);
-                expression();
-                printf("POPS LF@%%%d\n", paramNum++);
+                printf("DEFVAR TF@%%%d\n", paramNum);
+                if (match(TOKEN_COMMA)) compilationError(2);
+                ValueType argType = expression();
+                if (!checkUserFuncArgType(funcName, argType, paramNum)) compilationError(4);
+                printf("POPS TF@%%%d\n", paramNum++);
                 argumentNum++;
                 paramHasPrefix = false;
             } while (match(TOKEN_COMMA));
             if (prefixedArgs != prefixedArgsInUserFunc(funcName)) compilationError(4);
         }
+        printf("PUSHFRAME\n");
 
         if (argumentNum - 1 > userFuncParams(funcName->lexeme)) compilationError(4);
         printf("CALL $%s\n", funcName->lexeme);
@@ -691,7 +817,15 @@ ParseRule rules[] = {
     [TOKEN_LESS_EQUAL] = {NULL, binary, PREC_COMPARISON},
     [TOKEN_LEFT_PAREN] = {grouping, call, PREC_CALL},
     [TOKEN_RIGHT_PAREN] = {NULL, NULL, PREC_NONE},
-    [TOKEN_EOF] = {NULL, NULL, PREC_NONE}
+    [TOKEN_EOF] = {NULL, NULL, PREC_NONE},
+    [TOKEN_RETURN] = {NULL,     NULL,   PREC_NONE},
+    [TOKEN_VAR] = {NULL,     NULL,   PREC_NONE},
+    [TOKEN_LET] = {NULL,     NULL,   PREC_NONE},
+    [TOKEN_WHILE] = {NULL,     NULL,   PREC_NONE},
+    [TOKEN_LEFT_BRACE] = {NULL, NULL, PREC_NONE},
+    [TOKEN_RIGHT_BRACE] = {NULL, NULL, PREC_NONE},
+    [TOKEN_FUNC] = {NULL,     NULL,   PREC_NONE},
+
 };
 
 //returns parsing rule for this operation
@@ -704,7 +838,8 @@ static ValueType parsePrecedence(Precedence precedence) {
 
     //gets first token prefix rule and executes it
     ParseFn prefixOperation = getRule(parser.previous->type)->prefix;
-    ValueType prefixType = prefixOperation(NULL);
+    if (prefixOperation == NULL) compilationError(2);
+    ValueType prefixType = prefixOperation(parser.current, NONE_TYPE);
     ValueType infixType = NONE_TYPE;
     Token* name;
 
@@ -712,7 +847,7 @@ static ValueType parsePrecedence(Precedence precedence) {
     {
         name = advance();
         ParseFn infixRule = getRule(parser.previous->type)->infix;
-        infixType = infixRule(name);
+        infixType = infixRule(name, prefixType);
     }
 
     return infixType == NONE_TYPE? prefixType : infixType;
@@ -722,9 +857,9 @@ static ValueType expression() {
     return parsePrecedence(PREC_ASSIGNMENT);
 }
 
-static void block() {
+static void block(Token* funcName) {
     while (!match(TOKEN_RIGHT_BRACE)) {
-        declaration(true, false);
+        declaration(true, false, funcName);
         if (check(TOKEN_EOF)) compilationError(2);
     }
 }
@@ -734,6 +869,7 @@ static void funcDeclaration() {
     Token* funcName = parser.current;
     if (isFunc(funcName)) compilationError(3);
     char* prefixes[256];
+    ValueType types[256];
     consume(TOKEN_IDENTIFIER);
     
     printf("LABEL $%s\n", funcName->lexeme);
@@ -748,9 +884,10 @@ static void funcDeclaration() {
             Token* prefix = parser.current;
             consume(TOKEN_IDENTIFIER);
             Token* arg = parser.current; //current arg
-            variableDeclaration(true, true);
+            ValueType type = variableDeclaration(true, true);
             initializeLocalVar(arg);
             prefixes[argumentNum] = prefix->lexeme;
+            types[argumentNum] = type;
             printf("MOVE LF@%s$%d LF@%%%d\n", arg->lexeme, getVarDepth(arg), ++argumentNum);
         } while(match(TOKEN_COMMA));
     }
@@ -760,16 +897,16 @@ static void funcDeclaration() {
         returnType = getValueType(parser.current);
         advance(); 
     } 
-    symtable_insert_function(funcTable, funcName->lexeme, returnType, argumentNum, prefixes);
+    symtable_insert_function(funcTable, funcName->lexeme, returnType, argumentNum, prefixes, types);
     match(TOKEN_EOL);
     consume(TOKEN_LEFT_BRACE);
-    block();
+    block(funcName);
     // printf("POPFRAME\n");
     printf("RETURN\n");
     popLocalFrame();
 }
 
-static void variableDeclaration(bool isLocal, bool inFunctionParams) {
+static ValueType variableDeclaration(bool isLocal, bool inFunctionParams) {
     bool isConst;
     bool isInitialized = false; 
     if (match(TOKEN_VAR)) isConst = false;
@@ -798,6 +935,7 @@ static void variableDeclaration(bool isLocal, bool inFunctionParams) {
     if (match(TOKEN_EQUAL)) {
         isInitialized = true;
         expressionType = expression();
+        if (expressionType == NONE_TYPE) compilationError(7);
         if (expressionType == FLOAT && declaredType == INTEGER) printf("FLOAT2INTS\n");
         else if (expressionType == INTEGER && declaredType == FLOAT) printf("INT2FLOATS\n");
         else if (expressionType == NIL && declaredType == NONE_TYPE) compilationError(8);
@@ -811,15 +949,16 @@ static void variableDeclaration(bool isLocal, bool inFunctionParams) {
     if (expressionType == NONE_TYPE && declaredType == NONE_TYPE) compilationError(8);
 
     if (isLocal) {
-        pushLocal(var, isConst, isInitialized, declaredType == NONE_TYPE? expressionType : declaredType);
+        pushLocal(var, isConst, isInitialized, false , declaredType == NONE_TYPE? expressionType : declaredType);
         printf("POPS LF@%s$%d\n", var->lexeme, getVarDepth(var));
     } else {
-        symtable_insert_variable(varTable, var->lexeme, isConst, isInitialized, declaredType == NONE_TYPE? expressionType : declaredType);
+        symtable_insert_variable(varTable, var->lexeme, isConst, isInitialized, false, declaredType == NONE_TYPE? expressionType : declaredType);
         printf("POPS GF@%s\n", var->lexeme);
     }
 
     if (check(TOKEN_EOF) || match(TOKEN_EOL));
-    // }    
+    // }  
+    return declaredType == NONE_TYPE? expressionType : declaredType;  
 }
 
 static void ifStatement() {
@@ -835,10 +974,12 @@ static void ifStatement() {
         }        
     } else if (match(TOKEN_LEFT_PAREN)) {
         ValueType type = expression();
+        if (type != BOOLEAN) compilationError(7);
         consume(TOKEN_RIGHT_PAREN);
         printf("PUSHS bool@false\n"); //JUMPIFNEQS takes two values from stack, so we push one more
     } else {
         ValueType type = expression();
+        if (type != BOOLEAN) compilationError(7);
         printf("PUSHS bool@false\n"); //JUMPIFNEQS takes two values from stack, so we push one more
     }
 
@@ -849,7 +990,7 @@ static void ifStatement() {
     match(TOKEN_EOL); //if there is EOL doesn't matter
     consume(TOKEN_LEFT_BRACE);
     createLocalFrame();
-    block();
+    block(NULL);
     match(TOKEN_EOL);
     popLocalFrame();
     printf("JUMP thenJump%d\n", ifStmtNum); //escapes else statement
@@ -859,20 +1000,26 @@ static void ifStatement() {
         match(TOKEN_EOL); //if here is EOL doesn't matter
         consume(TOKEN_LEFT_BRACE);
         createLocalFrame();
-        block();
+        block(NULL);
         popLocalFrame();
     }
     printf("LABEL thenJump%d\n", ifStmtNum);
 }
 
-static void returnStatement() {
+static void returnStatement(Token* funcName) {
+    if (!funcName) compilationError(2);
+    ValueType returnType = userFuncReturnType(funcName);
     if (match(TOKEN_EOL)) {
+        if (returnType != NONE_TYPE) compilationError(6);
         printf("PUSHS nil@nil\n");
         printf("POPS LF@%%retval\n");
     } else {
-        expression();
+        ValueType exprType = expression();
+        if (returnType == NONE_TYPE) compilationError(6);
+        if (exprType != returnType) compilationError(4);
         printf("POPS LF@%%retval\n");
     }
+    printf("RETURN\n");
 }
 
 static void whileStatement() {
@@ -888,7 +1035,7 @@ static void whileStatement() {
     match(TOKEN_EOL); //if here is EOL doesn't matter
     consume(TOKEN_LEFT_BRACE);
     createLocalFrame();
-    block();
+    block(NULL);
     popLocalFrame();
     printf("JUMP whileStart%d\n", whileStmtNumber); //escapes else statement
 
@@ -900,31 +1047,31 @@ static void expressionStatement() {
     if (check(TOKEN_EOF) || match(TOKEN_EOL));
 }
 
-static void declaration(bool isLocal, bool isFirstFrame) {
+static void declaration(bool isLocal, bool isFirstFrame, Token* funcName) {
     if (match(TOKEN_FUNC)) {
         while (!match(TOKEN_RIGHT_BRACE)) advance();
     } else if (check(TOKEN_VAR) || check(TOKEN_LET)) {
         variableDeclaration(isLocal, false);
     } else if (match(TOKEN_EOL)) {
     } else {
-        statement(isFirstFrame);
+        statement(isFirstFrame, funcName);
     }
 }
 
-static void statement(bool isFirstFrame) {
+static void statement(bool isFirstFrame, Token* funcName) {
     if (match(TOKEN_IF)) {
         if (isFirstFrame) printf("CREATEFRAME\nPUSHFRAME\n");
         ifStatement();
         if (isFirstFrame) printf("POPFRAME\n");
     } else if (match(TOKEN_RETURN)) {
-        returnStatement();
+        returnStatement(funcName);
     } else if (match(TOKEN_WHILE)) {
         if (isFirstFrame) printf("CREATEFRAME\nPUSHFRAME\n");
         whileStatement();
         if (isFirstFrame) printf("POPFRAME\n");
     } else if (match(TOKEN_LEFT_BRACE)) {
         createLocalFrame();
-        block();
+        block(funcName);
         popLocalFrame();
     } else {
         expressionStatement();
@@ -982,7 +1129,7 @@ int compile(TokenList* list, symtable* variables, symtable* functions) {
     int i = 0;
     while (!match(TOKEN_EOF)) {
         if (match(TOKEN_FUNC)) skipFunctionDecl();
-        else declaration(false, true);
+        else declaration(false, true, NULL);
     }
     
     endCompilation();

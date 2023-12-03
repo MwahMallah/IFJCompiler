@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include "../test/debug.h"
+
 
 #define INITIAL_PROGRAM_SIZE 128
 
@@ -113,7 +115,7 @@ static int findStringLength() {
     return length;
 }
 
-static bool addChar(char* string, char ch1, char ch2, int* pos) {
+static bool addChar(char* string, char ch1, char ch2, int* pos, bool isLong) {
     if (ch1 == '\\') {
         int value;
         switch (ch2)
@@ -134,12 +136,17 @@ static bool addChar(char* string, char ch1, char ch2, int* pos) {
                 value = 34;
                 break;
             default:
-                exit(1);
+                *pos = -1;
+                return false;
         }
         sprintf(string + *pos, "\\%03d", value);
         (*pos) += 4;
         return true;
     } else if ((ch1 <= 32 && ch1 >= 0) || (ch1 == 35) || (ch1 == 92)) {
+        if (!isLong && ch1 != 32) {
+            *pos = -1;
+            return false;
+        }
         sprintf(string + *pos, "\\%03d", (int)ch1);
         (*pos) += 4;
     } else {
@@ -152,7 +159,7 @@ static bool addChar(char* string, char ch1, char ch2, int* pos) {
 
 
 //Skips all white spaces, tabulations and commentaries.
-static void skipWhiteSpaces() {
+static TokenType skipWhiteSpaces() {
     for(;;) { // infinite loop
         char ch = peek();
         switch (ch)
@@ -172,6 +179,7 @@ static void skipWhiteSpaces() {
                     char ch1, ch2;
                     ch1 = advance();
                     do {
+                        if (isAtEnd()) return TOKEN_ERROR;
                         ch2 = advance();
                         if (ch1 == '*' && ch2 == '/') inner--;
                         else if (ch1 == '/' && ch2 == '*') inner++;
@@ -180,9 +188,10 @@ static void skipWhiteSpaces() {
                     skipWhiteSpaces();         
                 }
             default:
-                return;
+                return TOKEN_ARROW;
         }
     }
+    return TOKEN_ARROW;
 }
 
 //Makes token from a given type
@@ -192,21 +201,27 @@ static Token makeFromType(TokenType type) {
     char ch1, ch2;
     int length = (int) (scanner.curr - scanner.start); 
 
-    if (type == TOKEN_STRING) {
+    if (type == TOKEN_LONG_STRING || type == TOKEN_STRING) {
         bool escapeChar = false;
         int stringLength = findStringLength();
         lexeme = malloc(sizeof(char) * (stringLength + 1));
+        int escapeQuotesLength = type == TOKEN_LONG_STRING? 3 : 1;
+        int startPos = type == TOKEN_LONG_STRING? 5 : 1;
 
-        for (int pos = 1; pos < length - 1; pos++) { //starts from 1 to escape '"'
+        for (int pos = startPos; pos < length - escapeQuotesLength; pos++) { //starts from 1 to escape '"'
             ch1 = scanner.start[pos];
             ch2 = scanner.start[pos + 1];
-            escapeChar = addChar(lexeme, ch1, ch2, &i);
+            escapeChar = addChar(lexeme, ch1, ch2, &i, type == TOKEN_LONG_STRING);
+            if (i == - 1) {
+                return makeFromType(TOKEN_ERROR);
+            }
             if (escapeChar) pos++;
         }
+        lexeme[i] = '\0';
+        return makeToken(TOKEN_STRING, lexeme);
     } else {
         lexeme = malloc(sizeof(char) * (length + 1)); //allocates space for needed lexeme
-
-        for (i = 0; i < length; i++) {
+        for (i; i < length; i++) {
             lexeme[i] = scanner.start[i]; //populates lexeme with chars from give input
         }    
     }
@@ -242,6 +257,17 @@ static Token string() {
     } 
     advance();
     return makeFromType(TOKEN_STRING);
+}
+
+static Token longString() {
+    while (peek() != '"' && !isAtEnd()){
+        if (peek() == '\\' && peekNext() == '"') advance();
+        advance();
+    } 
+    advance();
+    advance();
+    advance();
+    return makeFromType(TOKEN_LONG_STRING);
 }
 
 static Token checkKeyWord(int start, int end, char* word, TokenType type) {
@@ -286,7 +312,9 @@ static Token identifier() {
 //returns value of current scanner char
 //
 static Token scanToken() {
-    skipWhiteSpaces();
+    TokenType type = skipWhiteSpaces();
+    if (type == TOKEN_ERROR) return makeFromType(TOKEN_ERROR);
+
     scanner.start = scanner.curr;
 
     if (isAtEnd()) return makeFromType(TOKEN_EOF);
@@ -321,7 +349,14 @@ static Token scanToken() {
         case '>':
             return match('=')? makeFromType(TOKEN_GREATER_EQUAL) : makeFromType(TOKEN_GREATER);
         case '"':
-            return string();
+            if (peek() == '"' && peekNext() == '"') {
+                advance();
+                advance();
+                // advance();
+                // advance();  //escape first newline
+                return longString();
+            }
+            else return string();
         default:
             return makeFromType(TOKEN_ERROR);
     }

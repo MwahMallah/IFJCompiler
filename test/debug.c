@@ -76,6 +76,9 @@ char* getType(TokenType type) {
         case TOKEN_EOL:
                     string = "TOKEN_EOL";
                     break; 
+        case TOKEN_ERROR:
+                string = "TOKEN_ERROR";
+                break;
         case TOKEN_BANG:
                     string = "TOKEN_BANG";
                     break;
@@ -163,6 +166,9 @@ char* getType(TokenType type) {
         case TOKEN_EOF:
                     string = "TOKEN_EOF";
                     break;
+        case TOKEN_LONG_STRING:
+            string = "TOKEN_LONG_STRING";
+            break;
         default:
             break;
     }

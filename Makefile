@@ -8,6 +8,10 @@ foreign_test:
 	cd test/foreign_tests/ && ./test.sh
 	cd ../..
 
+foreign_test2: 
+	cd test/foreign_tests2/ && ./test2.sh
+	cd ../..
+
 old_rus: main.c scanner/oldRusScanner.c data_structures/tokens.c data_structures/str.c test/debug.c codeGenerator/compiler.c
 	$(CC) -o old_rus_script $^
 	
