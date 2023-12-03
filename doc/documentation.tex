@@ -111,18 +111,12 @@
         Každý token má typ (např. celé číslo, řetězec, identifikátor) a lexém (skutečná textová reprezentace).
         \\
 
-	Celý lexikální analyzátor je implementován jako deterministický konečný automat podle vytvořeného diagramu.
+	Celý lexikální analyzátor je implementován jako deterministický konečný automat podle vytvořeného diagramu. \ref{figure:fa_graph}
 
- \includegraphics[width=0.95\linewidth]{inc/FA_graph.pdf}
 
 	\subsection{Syntaktická analýza}
 
-        Úkolem syntaktického analyzátoru je vyplnit tabulku symbolů (symtable). Syntaktická analýza, kterou lze nalézt v~souborech \verb|parser.c| a \verb|parser.h|, vychazí z~LL\,--\,gramatiky a LL tabulky. 
-        \\
-        \includegraphics[width=0.95\linewidth]{inc/FA_graph.pdf}. 
-        \\
-        \includegraphics[width=0.95\linewidth]{inc/FA_graph.pdf}. 
-        \\
+        Úkolem syntaktického analyzátoru je vyplnit tabulku symbolů (symtable). Syntaktická analýza, kterou lze nalézt v~souborech \verb|parser.c| a \verb|parser.h|, vychazí z~LL\,--\,gramatiky \ref{figure:ll_gramatika} a LL tabulky. \ref{figure:ll_tabulka}
 
 
 
@@ -133,17 +127,41 @@ On definuje ukazatele na tabulky symbolů (var Table a funcTable) pro proměnné
 implementuje funkce pro analýzu deklarací proměnných, přiřazení, struktur řídicího toku a dalších programových konstrukcí.
 Funkce jsou navrženy tak, aby zpracovávaly různé části gramatiky, a analyzátor iteruje seznam tokenů při volání těchto funkcí.\\
 
-\\
-Jako výsledek parser kontroluje strukturu zdrojového kódu podle definovaných gramatických pravidel.
-Analyzované informace lze použít pro další fáze kompilátoru, jako je sémantická analýza a generování kódu.
+\subsubsection{Použité techniky}
+
+    Při práci na syntaktické analýze jsme pro parsing použili následující techniku \textbf{Recursive Descent Parsing}.
+    
+    \textbf{Recursive Descent Parsing} je založená na principu rekurzivních postupů. \textbf{Recursive Descent Parsing} se používá k analýze gramatiky jazyka. Každé pravidlo gramatiky je reprezentováno funkcí, která rekurzivně volá sebe a další rozebíratelné funkce pro kontrolu podstruktur.
+    \\
+    \\
+    Princip práce:
+    \begin{itemize}
+        \item Každý neterminál v gramatice je reprezentován funkcí.
+        \item Pro každý neterminál je vytvořena funkce rozboru.
+        \item Funkce rozboru způsobuje sebe nebo jiné funkce podle pravidel gramatiky.
+    \end{itemize}
+
+    Při práci na parsingu výrazů jsme použili \textbf{Pratt's Parsing}.
+    Zaměřuje se na zpracování operátorů a explicitně definuje prioritu a asociativnost operátorů.
+    \\
+    \\
+    Princip práce:
+    \begin{itemize}
+        \item Každý operátor je reprezentován funkcí rozboru.
+        \item Operátoři jsou seskupeni podle priority.
+        \item S tím se počítá i asociativnost operatorů.
+        \item Rekurzivní sestup se používá k analýze výrazů.
+    \end{itemize}
+
+    \\
+    Jako výsledek parser kontroluje strukturu zdrojového kódu podle definovaných gramatických pravidel.
+    Analyzované informace lze použít pro další fáze kompilátoru, jako je sémantická analýza a generování kódu.
 
 	
 	\subsubsection{Tabulka symbolů}
 
-	Při zpracovávání výrazů je použita precedenční tabulka \ref{table:prec_table}. 
-        \\
-        \includegraphics[width=0.95\linewidth]{inc/FA_graph.pdf}. 
-        \\
+	Při zpracovávání výrazů je použita precedenční tabulka \ref{figure:prec_tabulka}. 
+
         \verb|symbtable.c| a \verb|symbtable.h| tyto soubory implementuje tabulku symbolů, což je datová struktura pro ukládání párů klíč-hodnota. Používá se ke správě proměnných a funkcí během kompilace. Tabulka symbolů používá otevřené adresování a lineární sondování pro řešení kolizí.
 
         Analyzátor interaguje se dvěma tabulkami symbolů: \textbf{varTable}  pro proměnné a \textbf{funcTable} pro funkce.
@@ -152,10 +170,9 @@ Analyzované informace lze použít pro další fáze kompilátoru, jako je sém
 
 	\subsection{Sémantická analýza}
 
-	Sémantická analýza je prováděna podle sémantických pravidel jazyka IFJ23. Používáme strukturu \verb|Parser|, ve které jsou potřebná data pro sémantické kontroly. 
+	Sémantická analýza je prováděna podle sémantických pravidel jazyka IFJ23. Samotná sémantická analýza je vložena do souboru \verb|compile.c|
 
-    V~souboru \verb|parser.c| používáme tabulky symbolů ke správě informací o proměnných a funkcích. Tabulky symbolů jsou vyplněny a dotazovány během analýzy, což zajišťuje správné a efektivní ukládání a vyhledávání informací. 
-    Tabulka symbolů se používá k ukládání informací o proměnných a funkcích během analýzy.
+    V~souboru \verb|compile.c| používáme tabulky symbolů ke správě informací o proměnných a funkcích. Tabulky symbolů jsou vyplněny a dotazovány během analýzy, což zajišťuje správné a efektivní ukládání a vyhledávání informací o proměnných a funkcích během analýzy.
     Sémantická analýza zahrnuje kontrolu duplicitních deklarací a zajištění správného použití.
 
 
@@ -202,7 +219,7 @@ Analyzované informace lze použít pro další fáze kompilátoru, jako je sém
 			\textbf{Maksim Dubrovin} & \begin{tabular}{l} Vedení týmu, organizace práce,
 				\\ kontrola, testování, struktura projektu, generování cílového kódu \end{tabular} \\
 			Anastasiia Samoilova & \begin{tabular}{l} Lexikální analýza, testování, dokumentace \end{tabular} \\
-			Ilya Volkov & \begin{tabular}{l} Sntaktická analýza, sémantická analýza, testování \\
+			Ilya Volkov & \begin{tabular}{l} Syntaktická analýza, sémantická analýza, testování, tabulka symbolů  \\
 				  \end{tabular} \\
 			Anastasiia Mironova & \begin{tabular}{l} Lexikální analýza, testování, dokumentace \end{tabular} \\ \hline
 		\end{tabular}
@@ -218,19 +235,20 @@ Analyzované informace lze použít pro další fáze kompilátoru, jako je sém
      Tento projekt je jedním z největších projektů na naší fakultě, tým jsme sestavili okamžitě, protože ještě před úkolem jsme se dohodli, že budeme spolupracovat. Tento projekt se ukázal být užitečný tím, že nám dal zkušenosti v týmu, naučil nás správný přístup k práci a rozdělování úkolů. Projekt vyžaduje spoustu času na realizaci, takže k němu potřebujete zodpovědný přístup a schopnost soustředit se na ponoření do plnění úkolu.
     Celkově nám tento projekt přinesl mnoho znalostí o práci překladačů, prakticky pro nás
     vysvětlil probíranou látku v~předmětech IFJ a~IAL.
+    
 
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Literatura %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Literatura %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     \section{Literatura}
 
     \begin{itemize}
         \item Alexandr Meduna, Roman Lukáš - Formal Languages And Compilers, Lecture slides
         \item Jan M. Honzík, Ivana Burgetová, Bohuslav Křena, Algorithms, Lecture slides
+        \item Robert Nystrom "Crafting Interpreters". 
     \end{itemize}
+
  
-
-
-
-	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Citace %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Citace %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	\clearpage
 	\bibliographystyle{czechiso}
 	\renewcommand{\refname}{Literatura}
@@ -238,11 +256,9 @@ Analyzované informace lze použít pro další fáze kompilátoru, jako je sém
 
 
 
-	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Přílohy %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Přílohy %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         \section{Přílohy}
-	\clearpage
 	\appendix
-
 
 	\subsection{Diagram konečného automatu specifikující lexikální analyzátor}
 	\begin{figure}[!ht]
@@ -254,84 +270,32 @@ Analyzované informace lze použít pro další fáze kompilátoru, jako je sém
 	\end{figure}
 
 
-	\subsection{LL -- gramatika}
-	\begin{table}[!ht]
+	\subsection{LL - gramatika}
+	\begin{figure}[!ht]
 		\centering
-		\begin{enumerate}[noitemsep]
-			\item \verb|<prog> -> DECLARE FUNCTION ID ( <params> ) AS <type> <prog>|
-			\item \verb|<prog> -> FUNCTION ID ( <params> ) AS <type> EOL <statement> END| \newline \verb|FUNCTION <prog>|
-			\item \verb|<prog> -> EOL <prog>|
-			\item \verb|<prog> -> <scope>|
-
-			\item \verb|<scope> -> SCOPE EOL <statement> END SCOPE <end>|
-			\item \verb|<end> -> EOL <end>|
-			\item \verb|<end> -> EOF|
-
-			\item \verb|<params> -> ID AS <type> <param_n>|
-			\item \verb|<params> -> |$\varepsilon$
-
-			\item \verb|<param_n> -> , ID AS <type> <param_n>|
-			\item \verb|<param_n> -> |$\varepsilon$
-
-			\item \verb|<statement> -> DIM ID AS <data_type> <def_var> EOL <statement>|
-			\item \verb|<statement> -> IF <expression> THEN EOL <statement> ELSE EOL| \newline \verb|<statement> END IF EOL <statement>|
-			\item \verb|<statement> -> DO WHILE <expression> EOL <statement> LOOP EOL| \newline \verb|<statement>|
-			\item \verb|<statement> -> ID = <def_value> EOL <statement>|
-			\item \verb|<statement> -> INPUT ID EOL <statement>|
-			\item \verb|<statement> -> PRINT <expression> ; <print> EOL <statement>|
-			\item \verb|<statement> -> RETURN <expression> EOL <statement>|
-			\item \verb|<statement> -> |$\varepsilon$
-
-			\item \verb|<def_var> -> = <expression>|
-			\item \verb|<def_var> -> |$\varepsilon$
-
-			\item \verb|<def_value> -> ID ( <arg> )|
-			\item \verb|<def_value> -> ASC ( <arg> )|
-			\item \verb|<def_value> -> CHR ( <arg> )|
-			\item \verb|<def_value> -> LENGTH ( <arg> )|
-			\item \verb|<def_value> -> SUBSTR ( <arg> )|
-			\item \verb|<def_value> -> <expression>|
-
-			\item \verb|<arg> -> <value> <arg_n>|
-			\item \verb|<arg> -> |$\varepsilon$
-
-			\item \verb|<arg_n> -> , <value> <arg_n>|
-			\item \verb|<arg_n> -> |$\varepsilon$
-
-			\item \verb|<value> -> INT_VALUE|
-			\item \verb|<value> -> DOUBLE_VALUE|
-			\item \verb|<value> -> STRING_VALUE|
-			\item \verb|<value> -> ID|
-
-			\item \verb|<print> -> <expression> ; <print>|
-			\item \verb|<print> -> |$\varepsilon$
-
-			\item \verb|<type> -> INTEGER|
-			\item \verb|<type> -> DOUBLE|
-			\item \verb|<type> -> STRING|
-		\end{enumerate}
-
-		\caption{LL -- gramatika řídící syntaktickou analýzu}
-		\label{table:ll_gramatika}
-	\end{table}
+		\vspace{-1.2cm}
+		\includegraphics[width=0.95\linewidth]{inc/LL_gramatika.pdf}
+		\caption{LL -- gramatika řídící syntaktickou analýzu }
+		\label{figure:ll_gramatika}
+	\end{figure}
 
 
 	\subsection{LL -- tabulka}
-	\begin{table}[!ht]
+	\begin{figure}[!ht]
 		\centering
 		\includegraphics[width=1\linewidth]{inc/LL_table.pdf}
 		\caption{LL -- tabulka použitá při syntaktické analýze}
-		\label{table:ll_table}
-	\end{table}
+		\label{figure:ll_tabulka}
+	\end{figure}
 
 
 	\subsection{Precedenční tabulka}
-	\begin{table}[!ht]
+	\begin{figure}[!ht]
 		\centering
 		\includegraphics[width=0.7\linewidth]{inc/prec_table.pdf}
 		\caption{Precedenční tabulka použitá při precedenční syntaktické analýze výrazů}
-		\label{table:prec_table}
-	\end{table}
+		\label{figure:prec_tabulka}
+	\end{figure}
 
 
 \end{document}
