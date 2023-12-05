@@ -240,13 +240,28 @@ static bool isAlpha() {
 }
 
 static Token number() {
-    while (isNumber(peek())) advance();
+    while (isNumber(peek())) {
+        advance();
+    }
 
     if (peek() == '.' && isNumber(peekNext())) {
         advance();
         while (isNumber(peek())) advance();
+        if (peek() == 'e' || peek() == 'E') {
+            advance();
+            if (match('+')) ;
+            else if (match('-')) ;
+            while (isNumber(peek())) advance();
+        }
+        return makeFromType(TOKEN_FLOAT);
+    } else if (peek() == 'e' || peek() == 'E') {
+        advance();
+        if (match('+')) ;
+        else if (match('-')) ;
+        while (isNumber(peek())) advance();
         return makeFromType(TOKEN_FLOAT);
     }
+
     return makeFromType(TOKEN_INTEGER);
 }
 
@@ -255,6 +270,8 @@ static Token string() {
         if (peek() == '\\' && peekNext() == '"') advance();
         advance();
     } 
+
+    if (isAtEnd()) return makeFromType(TOKEN_ERROR);
     advance();
     return makeFromType(TOKEN_STRING);
 }
@@ -264,6 +281,7 @@ static Token longString() {
         if (peek() == '\\' && peekNext() == '"') advance();
         advance();
     } 
+    if (isAtEnd()) return makeFromType(TOKEN_ERROR);
     advance();
     advance();
     advance();
@@ -285,6 +303,7 @@ static Token makeIdentifier() {
     switch (ch)
     {
         case 'D': return checkKeyWord(1, 5, "ouble", TOKEN_TYPE_DOUBLE);
+        case 'B': return checkKeyWord(1, 3, "ool", TOKEN_TYPE_BOOLEAN);
         case 'I': return checkKeyWord(1, 2, "nt", TOKEN_TYPE_INT);
         case 'S': return checkKeyWord(1, 5, "tring", TOKEN_TYPE_STRING);
         case 'n': return checkKeyWord(1, 2, "il", TOKEN_NIL);

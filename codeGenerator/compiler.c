@@ -280,6 +280,8 @@ static ValueType getValueType(Token* token) {
             return INTEGER;
         case TOKEN_TYPE_DOUBLE:
             return FLOAT;
+        case TOKEN_TYPE_BOOLEAN:
+            return BOOLEAN;
         default:
             return NONE_TYPE;
     }
@@ -549,7 +551,10 @@ static ValueType integer(Token* name, ValueType type) {
 //pushes float value to vm stack
 static ValueType floating(Token* name, ValueType type) {
     if (getRule(name->type)->prefix != NULL && getRule(name->type)->infix == NULL) compilationError(2);
-    double value = strtodouble(parser.previous->lexeme);
+    // double value = strtodouble(parser.previous->lexeme);
+    double value;
+    sscanf(parser.previous->lexeme, "%lf", &value);
+
     printf("PUSHS float@%a\n", value);
     return FLOAT;
 }
@@ -583,6 +588,8 @@ static ValueType variable(Token* name, ValueType type) {
     Token* var = parser.previous;
 
     if (check(TOKEN_LEFT_PAREN)) return NONE_TYPE;
+    printf("Locals depth: %d\n", locals.scopeDepth);
+    printToken(locals.variables[locals.localPos].variable);
     if (!varExist(var)) compilationError(5);
 
     if (match(TOKEN_EQUAL)) {
@@ -689,9 +696,9 @@ static ValueType binary(Token* leftValue, ValueType leftValueType) {
             printf("LABEL %%left_op$%d\n", questionLabel);
             printf("PUSHS GF@tmp_op1\n");
             printf("LABEL %%right_op$%d\n", questionLabel++);
-            if (leftValue->type == TOKEN_STRING || variableIsType(leftValue, STRING)) binaryOpType = STRING;
-            else if (leftValue->type == TOKEN_INTEGER || variableIsType(leftValue, INTEGER)) binaryOpType = INTEGER;
-            else if (leftValue->type == TOKEN_FLOAT || variableIsType(leftValue, FLOAT)) binaryOpType = FLOAT;
+            if (leftValueType == STRING || rightValueType == STRING) binaryOpType = STRING;
+            else if (leftValueType == INTEGER || rightValueType == INTEGER) binaryOpType = INTEGER;
+            else if (leftValueType == FLOAT || rightValueType == FLOAT) binaryOpType = FLOAT;
             break;
         case TOKEN_PLUS: 
             if (getValueType(leftValue) == STRING || rightValueType == STRING) {
@@ -896,6 +903,7 @@ static void funcDeclaration() {
     if (match(TOKEN_ARROW)) {
         returnType = getValueType(parser.current);
         advance(); 
+        match(TOKEN_QUESTION);
     } 
     symtable_insert_function(funcTable, funcName->lexeme, returnType, argumentNum, prefixes, types);
     match(TOKEN_EOL);
@@ -961,7 +969,7 @@ static ValueType variableDeclaration(bool isLocal, bool inFunctionParams) {
     return declaredType == NONE_TYPE? expressionType : declaredType;  
 }
 
-static void ifStatement() {
+static void ifStatement(Token* funcName) {
     if (match(TOKEN_LET)) {
         printf("PUSHS nil@nil\n");
         Token* var = parser.current;
@@ -972,14 +980,12 @@ static void ifStatement() {
         } else {
             printf("PUSHS GF@%s\n", var->lexeme);
         }        
-    } else if (match(TOKEN_LEFT_PAREN)) {
-        ValueType type = expression();
-        if (type != BOOLEAN) compilationError(7);
-        consume(TOKEN_RIGHT_PAREN);
-        printf("PUSHS bool@false\n"); //JUMPIFNEQS takes two values from stack, so we push one more
     } else {
+        bool hasPrefix = false;
+        if (match(TOKEN_LEFT_PAREN)) hasPrefix = true;
         ValueType type = expression();
         if (type != BOOLEAN) compilationError(7);
+        if (hasPrefix) consume(TOKEN_RIGHT_PAREN);
         printf("PUSHS bool@false\n"); //JUMPIFNEQS takes two values from stack, so we push one more
     }
 
@@ -990,7 +996,7 @@ static void ifStatement() {
     match(TOKEN_EOL); //if there is EOL doesn't matter
     consume(TOKEN_LEFT_BRACE);
     createLocalFrame();
-    block(NULL);
+    block(funcName);
     match(TOKEN_EOL);
     popLocalFrame();
     printf("JUMP thenJump%d\n", ifStmtNum); //escapes else statement
@@ -1000,7 +1006,8 @@ static void ifStatement() {
         match(TOKEN_EOL); //if here is EOL doesn't matter
         consume(TOKEN_LEFT_BRACE);
         createLocalFrame();
-        block(NULL);
+        block(funcName);
+        match(TOKEN_EOL);
         popLocalFrame();
     }
     printf("LABEL thenJump%d\n", ifStmtNum);
@@ -1022,12 +1029,13 @@ static void returnStatement(Token* funcName) {
     printf("RETURN\n");
 }
 
-static void whileStatement() {
+static void whileStatement(Token* funcName) {
     int whileStmtNumber = jumpNumber++;
-    match(TOKEN_LEFT_PAREN);
+    bool hasPrefix = false;
+    if (match(TOKEN_LEFT_PAREN)) hasPrefix = true;
     printf("LABEL whileStart%d\n", whileStmtNumber);
     expression();
-    consume(TOKEN_RIGHT_PAREN);
+    if (hasPrefix) consume(TOKEN_RIGHT_PAREN);
     printf("PUSHS bool@false\n");
 
     printf("JUMPIFEQS whileEnd%d\n", whileStmtNumber); //escapes then statement
@@ -1035,7 +1043,7 @@ static void whileStatement() {
     match(TOKEN_EOL); //if here is EOL doesn't matter
     consume(TOKEN_LEFT_BRACE);
     createLocalFrame();
-    block(NULL);
+    block(funcName);
     popLocalFrame();
     printf("JUMP whileStart%d\n", whileStmtNumber); //escapes else statement
 
@@ -1048,9 +1056,7 @@ static void expressionStatement() {
 }
 
 static void declaration(bool isLocal, bool isFirstFrame, Token* funcName) {
-    if (match(TOKEN_FUNC)) {
-        while (!match(TOKEN_RIGHT_BRACE)) advance();
-    } else if (check(TOKEN_VAR) || check(TOKEN_LET)) {
+    if (check(TOKEN_VAR) || check(TOKEN_LET)) {
         variableDeclaration(isLocal, false);
     } else if (match(TOKEN_EOL)) {
     } else {
@@ -1061,13 +1067,13 @@ static void declaration(bool isLocal, bool isFirstFrame, Token* funcName) {
 static void statement(bool isFirstFrame, Token* funcName) {
     if (match(TOKEN_IF)) {
         if (isFirstFrame) printf("CREATEFRAME\nPUSHFRAME\n");
-        ifStatement();
+        ifStatement(funcName);
         if (isFirstFrame) printf("POPFRAME\n");
     } else if (match(TOKEN_RETURN)) {
         returnStatement(funcName);
     } else if (match(TOKEN_WHILE)) {
         if (isFirstFrame) printf("CREATEFRAME\nPUSHFRAME\n");
-        whileStatement();
+        whileStatement(funcName);
         if (isFirstFrame) printf("POPFRAME\n");
     } else if (match(TOKEN_LEFT_BRACE)) {
         createLocalFrame();

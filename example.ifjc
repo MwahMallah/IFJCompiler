@@ -5,4 +5,22 @@ DEFVAR GF@tmp_op2
 DEFVAR GF@tmp_op3
 JUMP $$main
 LABEL $$main
-EXIT int@2
+DEFVAR GF@a
+PUSHS nil@nil
+PUSHS int@5
+POPS GF@tmp_op2
+POPS GF@tmp_op1
+JUMPIFNEQ %left_op$0 nil@nil GF@tmp_op1
+PUSHS GF@tmp_op2
+JUMP %right_op$0
+LABEL %left_op$0
+PUSHS GF@tmp_op1
+LABEL %right_op$0
+POPS GF@a
+CREATEFRAME
+DEFVAR TF@%1
+PUSHS GF@a
+POPS TF@%1
+PUSHFRAME
+WRITE LF@%1
+POPFRAME
