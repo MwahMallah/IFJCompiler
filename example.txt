@@ -1,57 +1,50 @@
-let input = "ifj projekt je moc hard"
-let mock = mock(input)
-write(mock)
+let cycles = 50
 
-func is_even(_ i: Int) -> Bool {
-    let int = i / 2 * 2 // integer division
+func is_inside(_ real: Double, _ imag: Double) -> Bool {
+    var x = real
+    var y = imag
 
-    let i_d = Int2Double(i)
-    let d = i_d / 2.0 * 2.0
-    let double = Double2Int(d)
+    var cycle = 0
 
-    return int == double
-}
+    while cycle < cycles {
+        let tmp = x
+        x = x * x - y * y + real
+        y = 2 * tmp * y + imag
 
-func mock_char(_ s: String) -> String {
-    var c = ord(s)
+        if x * x + y * y > 4 {
+            return false
+        } else {}
 
-    if c >= 65 { if c <= 90 { // big -> small
-        c = c + 32
-        let new = chr(c)
-        return new
-    } else {} } else {}
-
-    if c >= 97 { if c <= 122 { // small -> big
-        c = c - 32
-        let new = chr(c)
-        return new
-    } else {} } else {}
-
-    return s
-}
-
-// you know what it is
-func mock(_ s: String) -> String {
-    let length = length(s)
-    var idx = 0
-    var output = ""
-
-    while idx < length {
-        let end = idx + 1
-        let char_opt = substring(of: s, startingAt: idx, endingBefore: end)
-        let char = char_opt!
-
-        let is_even = is_even(idx)
-
-        if is_even {
-            let mock_char = mock_char(char)
-            output = output + mock_char
-        } else {
-            output = output + char
-        }
-
-        idx = idx + 1
+        cycle = cycle + 1
     }
 
-    return output
+    return true
+}
+
+let size = readInt()
+if let size {
+    let size_d = Int2Double(size)
+    var y = 0 - size
+    while y < size {
+        var x = 0 - 2 * size
+
+        while x < size {
+            var real = Int2Double(x)
+            var imag = Int2Double(y)
+            real = real / size_d
+            imag = imag / size_d
+
+            let is_inside = is_inside(real, imag)
+
+            if is_inside { write() }
+            else { write() }
+
+            x = x + 1
+        }
+
+        write()
+        y = y + 1
+    }
+} else {
+    write("Cannot parse input")
 }

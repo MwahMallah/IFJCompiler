@@ -71,24 +71,25 @@ static LocalList locals;
 static int jumpNumber;
 static int questionLabel;
 static int substringLabel;
+bool reachedMain;
 
 //function declarations
 static void endCompilation();
 static ValueType expression();
-static void statement(bool isFirstFrame, Token* funcName);
-static void declaration(bool isLocal, bool isFirstFrame, Token* funcName);
+static void statement(bool isFirstFrame, bool isInWhile, Token* funcName);
+static void declaration(bool isLocal, bool isFirstFrame, bool isInWhile, Token* funcName);
 static ParseRule* getRule(TokenType type);
 static ValueType parsePrecedence(Precedence precedence);
-static ValueType variableDeclaration(bool isLocal, bool inFunctionParams);
+static ValueType variableDeclaration(bool isLocal, bool inFunctionParams, bool isInWhile, int relativeDepth);
 static ValueType nativeType(char* funcName);
 static bool isNative(char* funcName);
 static bool isFunc(Token* funcName);
 
 //pushes variable to list of local variables
-static void pushLocal(Token* variable, bool isConst, bool isInitialized, bool isParam, ValueType declaredType) {
+static void pushLocal(Token* variable, bool isConst, bool isInitialized, bool isParam, ValueType declaredType, int relativeDepth) {
     Local newLocal;
     newLocal.variable = *variable;
-    newLocal.depth = locals.scopeDepth;
+    newLocal.depth = locals.scopeDepth + relativeDepth;
     newLocal.type = declaredType;
     newLocal.isConst = isConst;
     newLocal.isInitialized = isInitialized;
@@ -97,7 +98,7 @@ static void pushLocal(Token* variable, bool isConst, bool isInitialized, bool is
 }
 
 static bool localVarExistOnCurrentDepth(Token* variable) {
-    for (int i = locals.localPos; locals.variables[i].depth == locals.scopeDepth; i--) {
+    for (int i = locals.localPos; locals.variables[i].depth == locals.scopeDepth && i != -1; i--) {
         if (compare_strings(variable->lexeme, locals.variables[i].variable.lexeme) == 1) {
             return true;
         }
@@ -457,7 +458,7 @@ static void popLocalFrame() {
     locals.scopeDepth -= 1;
     int i;
     for (i = locals.localPos; i >= 0; i--) { //finds position where last frame was
-        if (locals.variables[i].depth == locals.scopeDepth) break;
+        if (locals.variables[i].depth <= locals.scopeDepth) break;
     }
 
     locals.localPos = i; //sets current local position to end of previous frame
@@ -479,6 +480,7 @@ static Token* advance() {
 
 static void compilationError(int code) {
     endCompilation();
+    if (!reachedMain) printf("LABEL $$main\n");
     printf("EXIT int@%d\n", code);
     exit(code);
 }
@@ -528,6 +530,20 @@ static bool type(ValueType* declaredType, bool* nullable) {
     return false;
 }
 
+static void skipVariableDecl() {
+    while (!match(TOKEN_EOL) && !check(TOKEN_EOF)) advance();
+}
+
+static void skipBlock() {
+    int unclosedBraces = 1;
+
+    while (unclosedBraces != 0){
+        if (check(TOKEN_LEFT_BRACE)) unclosedBraces++;
+        else if (check(TOKEN_RIGHT_BRACE)) unclosedBraces--;
+        advance();
+    }
+}
+
 static void skipFunctionDecl() {
     while (!match(TOKEN_LEFT_BRACE)) advance();
     int unclosedBraces = 1;
@@ -564,8 +580,8 @@ static ValueType literal(Token* name, ValueType type) {
     if (getRule(name->type)->prefix != NULL && getRule(name->type)->infix == NULL) compilationError(2);
     switch (parser.previous->type)
     {
-        case TOKEN_TRUE: printf("PUSHS bool@%s\n", parser.previous->lexeme); break;
-        case TOKEN_FALSE: printf("PUSHS bool@%s\n", parser.previous->lexeme); break;
+        case TOKEN_TRUE: printf("PUSHS bool@%s\n", parser.previous->lexeme); return BOOLEAN;
+        case TOKEN_FALSE: printf("PUSHS bool@%s\n", parser.previous->lexeme); return BOOLEAN;
         case TOKEN_NIL: {
             printf("PUSHS nil@%s\n", parser.previous->lexeme); 
             return NIL;
@@ -588,8 +604,6 @@ static ValueType variable(Token* name, ValueType type) {
     Token* var = parser.previous;
 
     if (check(TOKEN_LEFT_PAREN)) return NONE_TYPE;
-    printf("Locals depth: %d\n", locals.scopeDepth);
-    printToken(locals.variables[locals.localPos].variable);
     if (!varExist(var)) compilationError(5);
 
     if (match(TOKEN_EQUAL)) {
@@ -657,14 +671,19 @@ static ValueType binary(Token* leftValue, ValueType leftValueType) {
     if (leftValueType == FLOAT && rightValueType == INTEGER && (leftValue->type != TOKEN_IDENTIFIER || rightValue->type != TOKEN_IDENTIFIER)) {
         binaryOpType = FLOAT;
         printf("INT2FLOATS\n");
+        if (rightValue->type == TOKEN_INTEGER) rightValue->type = TOKEN_FLOAT;
     } else if (leftValueType == INTEGER && rightValueType == FLOAT && (leftValue->type != TOKEN_IDENTIFIER || rightValue->type != TOKEN_IDENTIFIER)) {
         binaryOpType = FLOAT;
         printf("POPS GF@tmp_op1\n"); //right value
         printf("INT2FLOATS\n"); //left value to float
         printf("PUSHS GF@tmp_op1\n");
+        if (leftValue->type == TOKEN_INTEGER) leftValue->type = TOKEN_FLOAT;
     } else if (leftValueType != rightValueType && leftValueType != NIL && rightValueType != NIL) {
         compilationError(7);
+    } else if (leftValueType == rightValueType) {
+        binaryOpType = rightValueType;
     }
+
     // if (getValueType(leftValue) == FLOAT && rightValueType == INTEGER) {
     //     binaryOpType = FLOAT;
     //     printf("INT2FLOATS\n");
@@ -854,7 +873,7 @@ static ValueType parsePrecedence(Precedence precedence) {
     {
         name = advance();
         ParseFn infixRule = getRule(parser.previous->type)->infix;
-        infixType = infixRule(name, prefixType);
+        infixType = infixRule(name, infixType == NONE_TYPE? prefixType : infixType);
     }
 
     return infixType == NONE_TYPE? prefixType : infixType;
@@ -864,18 +883,53 @@ static ValueType expression() {
     return parsePrecedence(PREC_ASSIGNMENT);
 }
 
-static void block(Token* funcName) {
+static void block(Token* funcName, bool isInWhile) {
     while (!match(TOKEN_RIGHT_BRACE)) {
-        declaration(true, false, funcName);
+        declaration(true, false, isInWhile, funcName);
         if (check(TOKEN_EOF)) compilationError(2);
     }
 }
 
 static void funcDeclaration() {
-    createLocalFrame();
     Token* funcName = parser.current;
     if (isFunc(funcName)) compilationError(3);
     char* prefixes[256];
+    ValueType types[256];
+    consume(TOKEN_IDENTIFIER);
+
+    int argumentNum = 0;
+    consume(TOKEN_LEFT_PAREN);
+     if (!check(TOKEN_RIGHT_PAREN)) {
+        do {
+            Token* prefix = parser.current;
+            consume(TOKEN_IDENTIFIER);
+            Token* arg = parser.current; //current arg
+            consume(TOKEN_IDENTIFIER);
+            consume(TOKEN_COLON);
+            ValueType type = getValueType(parser.current);
+            advance();
+            // ValueType type = variableDeclaration(true, true, false, 0);
+            // initializeLocalVar(arg);
+            prefixes[argumentNum] = prefix->lexeme;
+            types[argumentNum++] = type;
+        } while(match(TOKEN_COMMA));
+    }
+
+    consume(TOKEN_RIGHT_PAREN);
+    ValueType returnType = NONE_TYPE;
+    if (match(TOKEN_ARROW)) {
+        returnType = getValueType(parser.current);
+        advance(); 
+        match(TOKEN_QUESTION);
+    } 
+    symtable_insert_function(funcTable, funcName->lexeme, returnType, argumentNum, prefixes, types);
+}
+
+static void funcInitialization() {
+    createLocalFrame();
+    Token* funcName = parser.current;
+    // if (isFunc(funcName)) compilationError(3);
+    // char* prefixes[256];
     ValueType types[256];
     consume(TOKEN_IDENTIFIER);
     
@@ -888,13 +942,13 @@ static void funcDeclaration() {
     if (!check(TOKEN_RIGHT_PAREN)) {
         do
         {
-            Token* prefix = parser.current;
+            // Token* prefix = parser.current;
             consume(TOKEN_IDENTIFIER);
             Token* arg = parser.current; //current arg
-            ValueType type = variableDeclaration(true, true);
+            ValueType type = variableDeclaration(true, true, false, 0);
             initializeLocalVar(arg);
-            prefixes[argumentNum] = prefix->lexeme;
-            types[argumentNum] = type;
+            // prefixes[argumentNum] = prefix->lexeme;
+            // types[argumentNum] = type;
             printf("MOVE LF@%s$%d LF@%%%d\n", arg->lexeme, getVarDepth(arg), ++argumentNum);
         } while(match(TOKEN_COMMA));
     }
@@ -905,29 +959,33 @@ static void funcDeclaration() {
         advance(); 
         match(TOKEN_QUESTION);
     } 
-    symtable_insert_function(funcTable, funcName->lexeme, returnType, argumentNum, prefixes, types);
+    // symtable_insert_function(funcTable, funcName->lexeme, returnType, argumentNum, prefixes, types);
     match(TOKEN_EOL);
     consume(TOKEN_LEFT_BRACE);
-    block(funcName);
+    createLocalFrame();
+    block(funcName, false);
+    popLocalFrame();
     // printf("POPFRAME\n");
     printf("RETURN\n");
     popLocalFrame();
 }
 
-static ValueType variableDeclaration(bool isLocal, bool inFunctionParams) {
+static ValueType variableDeclaration(bool isLocal, bool inFunctionParams, bool isInWhileBlock, int relativeDepth) {
     bool isConst;
     bool isInitialized = false; 
     if (match(TOKEN_VAR)) isConst = false;
     else if (match(TOKEN_LET)) isConst = true;
+    else if (inFunctionParams) isConst = true;
 
     Token* var = parser.current;
 
     consume(TOKEN_IDENTIFIER); //check variable type next
     if (compare_strings(var->lexeme, "_") == 1) compilationError(2);
 
-    if (isLocal) {
+    if (isInWhileBlock) {
+    } else if (isLocal) {
         if (localVarExistOnCurrentDepth(var)) compilationError(3);
-        printf("DEFVAR LF@%s$%d\n", var->lexeme, locals.scopeDepth);
+        printf("DEFVAR LF@%s$%d\n", var->lexeme, locals.scopeDepth + relativeDepth);
     } else {
         if (globalVarExist(var)) compilationError(3);
         printf("DEFVAR GF@%s\n", var->lexeme);
@@ -956,8 +1014,10 @@ static ValueType variableDeclaration(bool isLocal, bool inFunctionParams) {
 
     if (expressionType == NONE_TYPE && declaredType == NONE_TYPE) compilationError(8);
 
-    if (isLocal) {
-        pushLocal(var, isConst, isInitialized, false , declaredType == NONE_TYPE? expressionType : declaredType);
+    if (isInWhileBlock) {
+        printf("POPS LF@%s$%d\n", var->lexeme, getVarDepth(var));
+    } else if (isLocal) {
+        pushLocal(var, isConst, isInitialized, false , declaredType == NONE_TYPE? expressionType : declaredType, relativeDepth);
         printf("POPS LF@%s$%d\n", var->lexeme, getVarDepth(var));
     } else {
         symtable_insert_variable(varTable, var->lexeme, isConst, isInitialized, false, declaredType == NONE_TYPE? expressionType : declaredType);
@@ -969,7 +1029,7 @@ static ValueType variableDeclaration(bool isLocal, bool inFunctionParams) {
     return declaredType == NONE_TYPE? expressionType : declaredType;  
 }
 
-static void ifStatement(Token* funcName) {
+static void ifStatement(Token* funcName, bool isInWhile) {
     if (match(TOKEN_LET)) {
         printf("PUSHS nil@nil\n");
         Token* var = parser.current;
@@ -996,7 +1056,7 @@ static void ifStatement(Token* funcName) {
     match(TOKEN_EOL); //if there is EOL doesn't matter
     consume(TOKEN_LEFT_BRACE);
     createLocalFrame();
-    block(funcName);
+    block(funcName, isInWhile);
     match(TOKEN_EOL);
     popLocalFrame();
     printf("JUMP thenJump%d\n", ifStmtNum); //escapes else statement
@@ -1006,7 +1066,7 @@ static void ifStatement(Token* funcName) {
         match(TOKEN_EOL); //if here is EOL doesn't matter
         consume(TOKEN_LEFT_BRACE);
         createLocalFrame();
-        block(funcName);
+        block(funcName, isInWhile);
         match(TOKEN_EOL);
         popLocalFrame();
     }
@@ -1029,9 +1089,36 @@ static void returnStatement(Token* funcName) {
     printf("RETURN\n");
 }
 
-static void whileStatement(Token* funcName) {
+static void whileStatement(Token* funcName, bool isInWhile) {
     int whileStmtNumber = jumpNumber++;
     bool hasPrefix = false;
+
+    if (!isInWhile) {
+        /*Looks for variable definitions*/
+        Token* previousToken = parser.previous;
+        Token* currentToken = parser.current;
+        int leftBraces = 0;
+        int rightBraces = 0;
+        int relativeDepth = 0;
+        while ((leftBraces != rightBraces) || (leftBraces == 0)) {
+            if (match(TOKEN_LEFT_BRACE)) {
+                relativeDepth++;
+                leftBraces++;
+            } else if (match(TOKEN_RIGHT_BRACE)) {
+                relativeDepth--;
+                rightBraces++;
+            } else if (match(TOKEN_VAR) || match(TOKEN_LET)) {
+                variableDeclaration(true, false, false, relativeDepth);
+            } else {
+                advance();
+            }
+        }
+        parser.previous = previousToken;
+        parser.current = currentToken;
+    }
+    /*                              */
+    createLocalFrame();
+
     if (match(TOKEN_LEFT_PAREN)) hasPrefix = true;
     printf("LABEL whileStart%d\n", whileStmtNumber);
     expression();
@@ -1040,10 +1127,11 @@ static void whileStatement(Token* funcName) {
 
     printf("JUMPIFEQS whileEnd%d\n", whileStmtNumber); //escapes then statement
 
+
     match(TOKEN_EOL); //if here is EOL doesn't matter
     consume(TOKEN_LEFT_BRACE);
-    createLocalFrame();
-    block(funcName);
+    
+    block(funcName, true);
     popLocalFrame();
     printf("JUMP whileStart%d\n", whileStmtNumber); //escapes else statement
 
@@ -1055,29 +1143,29 @@ static void expressionStatement() {
     if (check(TOKEN_EOF) || match(TOKEN_EOL));
 }
 
-static void declaration(bool isLocal, bool isFirstFrame, Token* funcName) {
+static void declaration(bool isLocal, bool isFirstFrame, bool isInWhile, Token* funcName) {
     if (check(TOKEN_VAR) || check(TOKEN_LET)) {
-        variableDeclaration(isLocal, false);
+        variableDeclaration(isLocal, false, isInWhile, 0);
     } else if (match(TOKEN_EOL)) {
     } else {
-        statement(isFirstFrame, funcName);
+        statement(isFirstFrame, isInWhile, funcName);
     }
 }
 
-static void statement(bool isFirstFrame, Token* funcName) {
+static void statement(bool isFirstFrame, bool isInWhile, Token* funcName) {
     if (match(TOKEN_IF)) {
         if (isFirstFrame) printf("CREATEFRAME\nPUSHFRAME\n");
-        ifStatement(funcName);
+        ifStatement(funcName, isInWhile);
         if (isFirstFrame) printf("POPFRAME\n");
     } else if (match(TOKEN_RETURN)) {
         returnStatement(funcName);
     } else if (match(TOKEN_WHILE)) {
         if (isFirstFrame) printf("CREATEFRAME\nPUSHFRAME\n");
-        whileStatement(funcName);
+        whileStatement(funcName, isInWhile);
         if (isFirstFrame) printf("POPFRAME\n");
     } else if (match(TOKEN_LEFT_BRACE)) {
         createLocalFrame();
-        block(funcName);
+        block(funcName, false);
         popLocalFrame();
     } else {
         expressionStatement();
@@ -1096,20 +1184,21 @@ static void initCompiler(TokenList* userList, symtable* variables, symtable* fun
     jumpNumber = 0;
     questionLabel = 0;
     substringLabel = 0;
+    reachedMain = false;
 
     printf(".IFJcode23\n\n");
     printf("DEFVAR GF@tmp_op1\n");
     printf("DEFVAR GF@tmp_op2\n");
     printf("DEFVAR GF@tmp_op3\n");
-    printf("JUMP $$main\n");
 }
 
-static void restartCompiler(TokenList* userList) {
+static void restartCompiler(TokenList* userList, bool startedMain) {
     parser.previous = userList->tokens;
     parser.current = userList->tokens;
     locals.localPos = -1;
     locals.scopeDepth = 0;
     list = userList;
+    if (startedMain) reachedMain = true;
 }
 
 //ends compilation process
@@ -1128,14 +1217,33 @@ int compile(TokenList* list, symtable* variables, symtable* functions) {
         else advance();
     }
 
-    restartCompiler(list);
+    restartCompiler(list, false);
+
+    while (!match(TOKEN_EOF)) {
+        if (match(TOKEN_LEFT_BRACE)) skipBlock();
+        else if (match(TOKEN_IF)) match(TOKEN_LET);
+        else if (check(TOKEN_VAR) || check(TOKEN_LET)) variableDeclaration(false, false, false, 0);
+        else advance();
+    }
+    
+    restartCompiler(list, false);
+
+    printf("JUMP $$main\n");
+
+    while (!match(TOKEN_EOF)) {
+        if (match(TOKEN_FUNC)) funcInitialization();
+        else advance();
+    }
+
+    restartCompiler(list, true);
 
     printf("LABEL $$main\n");
     // advance();
-    int i = 0;
+    // int i = 0;
     while (!match(TOKEN_EOF)) {
         if (match(TOKEN_FUNC)) skipFunctionDecl();
-        else declaration(false, true, NULL);
+        else if (match(TOKEN_VAR) || match(TOKEN_LET)) skipVariableDecl();
+        else declaration(false, true, false, NULL);
     }
     
     endCompilation();
