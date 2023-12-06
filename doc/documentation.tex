@@ -116,16 +116,20 @@
 
 	\subsection{Syntaktická analýza}
 
-        Úkolem syntaktického analyzátoru je vyplnit tabulku symbolů (symtable). Syntaktická analýza, kterou lze nalézt v~souborech \verb|parser.c| a \verb|parser.h|, vychazí z~LL\,--\,gramatiky \ref{figure:ll_gramatika} a LL tabulky. \ref{figure:ll_tabulka}
+        Úkolem syntaktického analyzátoru je vyplnit tabulku symbolů (symtable). Syntaktická analýza, kterou lze nalézt v~souborech \verb|compiler.c| a \verb|compiler.h|, vychazí z~LL\,--\,gramatiky \ref{figure:ll_gramatika} a LL tabulky. \ref{figure:ll_tabulka}
+\\
 
 
+Náš analyzátor syntaxe, je rekurzivní sestupný analyzátor, jako by při práci stavěl abstraktní syntaktický strom (abstract syntax tree), různé funkce zpracovávají různá gramatická pravidla na základě aktuálního tokenu a jeho priority. Sleduje také místní a globální proměnné pomocí tabulek znaků a seznamů místních proměnných.
+\\
 
-Syntaktický analyzátor je inicializován pomocí seznamu vstupních tokenů a tabulek symbolů pro proměnné a funkce.\\
-\verb|parser.c| obsahuje implementaci analyzátoru.
-Definuje statickou proměnnou \textbf{currentToken} pro sledování aktuální pozice v seznamu tokenů a definuje statickou booleovskou proměnnou \textbf{isEOF} používanou k označení, zda bylo dosaženo konce souboru.
-On definuje ukazatele na tabulky symbolů (var Table a funcTable) pro proměnné a funkce, pak
-implementuje funkce pro analýzu deklarací proměnných, přiřazení, struktur řídicího toku a dalších programových konstrukcí.
-Funkce jsou navrženy tak, aby zpracovávaly různé části gramatiky, a analyzátor iteruje seznam tokenů při volání těchto funkcí.\\
+\verb|Nejdůležitější struktury pro parser:|
+\begin{itemize}
+    \item Syntaktický analyzátor se pohybuje v seznamu tokenů pomocí struktury \textbf{Parser}.
+    \item Funkce \textbf{expression} analyzuje výrazy na základě priority.
+   \item  Pravidla syntaktické analýzy pro různé typy tokenů jsou definována ve struktuře \textbf{ParseRule}.
+    \item Informace o místních proměnných jsou spravovány pomocí struktur \textbf{Local} a \textbf{Local List}.
+\end{itemize}
 
 \subsubsection{Použité techniky}
 
@@ -170,7 +174,7 @@ Funkce jsou navrženy tak, aby zpracovávaly různé části gramatiky, a analyz
 
 	\subsection{Sémantická analýza}
 
-	Sémantická analýza je prováděna podle sémantických pravidel jazyka IFJ23. Samotná sémantická analýza je vložena do souboru \verb|compile.c|
+	Sémantická analýza je prováděna podle sémantických pravidel jazyka IFJ23. Sémantická a syntaktická analýza u nás probíhá v jednom souboru \verb|compile.c|
 
     V~souboru \verb|compile.c| používáme tabulky symbolů ke správě informací o proměnných a funkcích. Tabulky symbolů jsou vyplněny a dotazovány během analýzy, což zajišťuje správné a efektivní ukládání a vyhledávání informací o proměnných a funkcích během analýzy.
     Sémantická analýza zahrnuje kontrolu duplicitních deklarací a zajištění správného použití.
@@ -218,7 +222,7 @@ Funkce jsou navrženy tak, aby zpracovávaly různé části gramatiky, a analyz
 			Člen týmu & Přidělená práce \\ \hline
 			\textbf{Maksim Dubrovin} & \begin{tabular}{l} Vedení týmu, organizace práce,
 				\\ kontrola, testování, struktura projektu, generování cílového kódu \end{tabular} \\
-			Anastasiia Samoilova & \begin{tabular}{l} Lexikální analýza, testování, dokumentace \end{tabular} \\
+			Anastasiia Samoilova & \begin{tabular}{l} Lexikální analýza, testování, dokumentace, prezentace \end{tabular} \\
 			Ilya Volkov & \begin{tabular}{l} Syntaktická analýza, sémantická analýza, testování, tabulka symbolů  \\
 				  \end{tabular} \\
 			Anastasiia Mironova & \begin{tabular}{l} Lexikální analýza, testování, dokumentace \end{tabular} \\ \hline
@@ -264,7 +268,7 @@ Funkce jsou navrženy tak, aby zpracovávaly různé části gramatiky, a analyz
 	\begin{figure}[!ht]
 		\centering
 		\vspace{-1.2cm}
-		\includegraphics[width=0.95\linewidth]{inc/FA_graph.pdf}
+		\includegraphics[width=0.95\linewidth]{DIAGRAM.png}
 		\caption{Diagram konečného automatu specifikující lexikální analyzátor}
 		\label{figure:fa_graph}
 	\end{figure}
@@ -274,7 +278,7 @@ Funkce jsou navrženy tak, aby zpracovávaly různé části gramatiky, a analyz
 	\begin{figure}[!ht]
 		\centering
 		\vspace{-1.2cm}
-		\includegraphics[width=0.95\linewidth]{inc/LL_gramatika.pdf}
+		\includegraphics[width=0.95\linewidth]{LL_gramatika.pdf}
 		\caption{LL -- gramatika řídící syntaktickou analýzu }
 		\label{figure:ll_gramatika}
 	\end{figure}
@@ -283,7 +287,7 @@ Funkce jsou navrženy tak, aby zpracovávaly různé části gramatiky, a analyz
 	\subsection{LL -- tabulka}
 	\begin{figure}[!ht]
 		\centering
-		\includegraphics[width=1\linewidth]{inc/LL_table.pdf}
+		\includegraphics[width=1\linewidth]{LL_table.png}
 		\caption{LL -- tabulka použitá při syntaktické analýze}
 		\label{figure:ll_tabulka}
 	\end{figure}
