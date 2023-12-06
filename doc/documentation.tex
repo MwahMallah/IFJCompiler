@@ -1,6 +1,6 @@
 % Author: Anastasiia Samoilova <xsamoi00@stud.fit.vutbr.cz>
 % Author: Maksim Dubrovin <xdubro01@stud.fit.vutbr.cz>
-% Author: Ilya Volkov <xvolk02@stud.fit.vutbr.cz>
+% Author: Ilya Volkov <xvolko02@stud.fit.vutbr.cz>
 % Author: Anastasiia Mironova <xmiron05@stud.fit.vutbr.cz>
 
 
@@ -45,7 +45,7 @@
 			\begin{tabular}{l l l}
 				\textbf{Maksim Dubrovin} & \textbf{(xdubro01)} & \quad 25\,\% \\
 				Anastasiia Samoilova & (xsamoi00) & \quad 25\,\% \\
-				Ilya Volkov & (xvolk02) & \quad 25\,\% \\
+				Ilya Volkov & (xvolko02) & \quad 25\,\% \\
 				Anastasiia Mironova & (xmiron05) & \quad 25\,\% \\
 			\end{tabular}
 		\end{minipage}
@@ -184,12 +184,13 @@ Náš analyzátor syntaxe, je rekurzivní sestupný analyzátor, jako by při pr
 	\subsection{Generátor kódu}
  
         Generátor kódu je implementován v \texttt{compiler.c}. Jeho úkolem je vytvořit
-        konečný kód. Kód začíná definováním struktur a výčtů, jako je \textbf{Precedence} a \textbf{ValueType}, které se používají k reprezentaci priority operací a typů hodnot.
+        konečný kód. V naší implementaci probíhá generování kódu současně s průchodem AST, po kterém dostaneme cílový kód, ve kterém je často virtuální stroj vnímán jako Stack machine. Pro hledání sémantických chyb a generování správného kódu, například: volba správného rámce pro proměnnou nebo změna typu výrazu  třeba floatVariable + 2 na float, používáme tabulky symbolů  (v naší implementaci jsou implementovány jako tabulka s rozdělenými položkami s implicitním zřetězením položek ), v naší implementaci jsou to tabulky proměnných a funkcí, které uchovávají takové informace, jako je typ, rozsah platností, zda je proměnná konstanta a další informace. 
 
+
+        Kód začíná definováním struktur a výčtů, které se používají k reprezentaci priority operací a typů hodnot.
         Jsou oznámeny globální proměnné a struktury, jako je Parser, Local, a další, které budou použity v procesu kompilace. Existuje pole \textbf{rules}, které představuje pravidla parsingu pro různé tokeny. Tato pravidla se používají při analýze výrazů a příkazů.\\
-        Generátor našeho kódu obsahuje: funkce, které zpracovávají vestavěné funkce generováním odpovídajícího kódu pro virtuální stroj; funkce jako \textbf{advance, consume, match, expression} a další, které zpracovávají tokeny a výrazy v kódu; funkce pro zpracování deklarací proměnných; funkcí, podmíněných příkazů a cyklů (declaration, funcDeclaration, ifStatement, whileStatement, atd.).\\
-        Kompilace začíná vyvoláním funkce \textbf{initCompiler}, která inicializuje kompilátor. Pak nastává kompilační cyklus, ve kterém se zpracovávají funkce a deklarace.
-        Kompilace je ukončena vyvoláním funkce \textbf{endCompilation}.
+        Generátor našeho kódu obsahuje: funkce, které zpracovávají vestavěné funkce generováním odpovídajícího kódu pro virtuální stroj; funkce, které zpracovávají tokeny a výrazy v kódu; funkce pro zpracování deklarací proměnných; funkcí, podmíněných příkazů a cyklů (declaration, funcDeclaration, ifStatement, whileStatement, atd.).\\
+        Kompilace začíná vyvoláním funkce, která inicializuje kompilátor. Pak nastává kompilační cyklus, ve kterém se zpracovávají funkce a deklarace.
         Proces kompilace generuje kód pro virtuální stroj, který předpokládá provedení programu napsaného v daném programovacím jazyce.\\
 
         
@@ -222,10 +223,10 @@ Náš analyzátor syntaxe, je rekurzivní sestupný analyzátor, jako by při pr
 			Člen týmu & Přidělená práce \\ \hline
 			\textbf{Maksim Dubrovin} & \begin{tabular}{l} Vedení týmu, organizace práce,
 				\\ kontrola, testování, struktura projektu, generování cílového kódu \end{tabular} \\
-			Anastasiia Samoilova & \begin{tabular}{l} Lexikální analýza, testování, dokumentace, prezentace \end{tabular} \\
+			Anastasiia Samoilova & \begin{tabular}{l} Lexikální analýza, sémantická analýza, testování, dokumentace, prezentace \end{tabular} \\
 			Ilya Volkov & \begin{tabular}{l} Syntaktická analýza, sémantická analýza, testování, tabulka symbolů  \\
 				  \end{tabular} \\
-			Anastasiia Mironova & \begin{tabular}{l} Lexikální analýza, testování, dokumentace \end{tabular} \\ \hline
+			Anastasiia Mironova & \begin{tabular}{l} Lexikální analýza, testování, sémantická analýza, dokumentace \end{tabular} \\ \hline
 		\end{tabular}
 		\label{table:rozdeleni_prace}
     \\
